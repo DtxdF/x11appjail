@@ -1,0 +1,15 @@
+OPTION start
+OPTION overwrite=force
+OPTION volume=badwolf-data mountpoint:/data owner:25000 group:25000
+
+CMD pw useradd -n badwolf -d /data -u 25000 -s /bin/sh
+CMD mkdir -p /data
+CMD chown badwolf:badwolf /data
+
+CMD echo "exec badwolf" > /data/.ratpoisonrc
+CMD chown badwolf:badwolf /data/.ratpoisonrc
+
+PKG badwolf dbus xauth xrandr ratpoison xorg-fonts mesa-dri mesa-libs
+
+SERVICE dbus enable
+SERVICE dbus start
