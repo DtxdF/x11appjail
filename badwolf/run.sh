@@ -20,7 +20,7 @@ XINERAMA \
 +extension MIT-SHM \
 -nolisten tcp"
 
-appjail x11 "${JAIL}" \
+exec appjail x11 "${JAIL}" \
 	exec_start="ratpoison" \
 	exec_user="badwolf" \
 	xephyr_user="${USER}" \
