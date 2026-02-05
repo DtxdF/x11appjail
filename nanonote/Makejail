@@ -1,0 +1,12 @@
+OPTION start
+OPTION overwrite=force
+OPTION volume=nanonote-data mountpoint:/data owner:25000 group:25000
+
+CMD pw useradd -n nanonote -d /data -u 25000 -s /bin/sh
+CMD mkdir -p /data
+CMD chown nanonote:nanonote /data
+
+CMD echo "exec nanonote" > /data/.ratpoisonrc
+CMD chown nanonote:nanonote /data/.ratpoisonrc
+
+PKG nanonote xauth xrandr ratpoison xorg-fonts
