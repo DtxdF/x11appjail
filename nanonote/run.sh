@@ -18,7 +18,8 @@ XEPHYR_ARGS="\
 -extension \
 XINERAMA \
 +extension MIT-SHM \
--nolisten tcp"
+-nolisten tcp \
+-title \"Minimalist note taking application\""
 
 exec appjail x11 "${JAIL}" \
 	exec_start="ratpoison" \
