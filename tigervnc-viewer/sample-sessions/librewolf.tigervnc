@@ -1,0 +1,7 @@
+TigerVNC Configuration file Version 1.0
+
+ServerName=librewolf
+FullScreen=on
+QualityLevel=9
+PreferredEncoding=Raw
+ReconnectOnError=off

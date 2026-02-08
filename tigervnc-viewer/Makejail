@@ -1,0 +1,14 @@
+ARG tigervnc_session
+
+OPTION start
+OPTION overwrite=force
+OPTION volume=tigervnc-viewer-data mountpoint:/data owner:25000 group:25000
+
+CMD pw useradd -n tigervnc-viewer -d /data -u 25000 -s /bin/sh
+CMD mkdir -p /data
+CMD chown tigervnc-viewer:tigervnc-viewer /data
+
+COPY ${tigervnc_session} /data/session.tigervnc
+CMD chown tigervnc-viewer:tigervnc-viewer /data/session.tigervnc
+
+PKG tigervnc-viewer xorg-fonts xauth xrandr
