@@ -1,0 +1,15 @@
+OPTION start
+OPTION overwrite=force
+OPTION volume=librewolf-data mountpoint:/data owner:25000 group:25000
+
+CMD pw useradd -n librewolf -d /data -u 25000 -s /bin/sh
+CMD mkdir -p /data
+CMD chown librewolf:librewolf /data
+
+CMD echo "exec librewolf" > /data/.ratpoisonrc
+CMD chown librewolf:librewolf /data/.ratpoisonrc
+
+PKG librewolf dbus xauth xrandr ratpoison xorg-fonts mesa-dri mesa-libs
+
+SERVICE dbus enable
+SERVICE dbus start
