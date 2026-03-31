@@ -3,7 +3,7 @@
 BASEDIR=`dirname -- "$0"` || exit $?
 BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
 
-JAIL="${1:-nanonote}"
+JAIL="${X11APPJAIL_JAIL:-nanonote}"
 
 XEPHYR_ARGS="\
 -resizeable \
@@ -22,7 +22,8 @@ XINERAMA \
 -title \"Minimalist note taking application\""
 
 exec appjail x11 "${JAIL}" \
-	exec_start="ratpoison" \
-	exec_user="nanonote" \
-	xephyr_user="${USER}" \
-	xephyr_args="${XEPHYR_ARGS}"
+    exec_start="ratpoison" \
+    exec_user="noroot" \
+    xephyr_user="${USER}" \
+    xephyr_args="${XEPHYR_ARGS}" \
+    xauthority="${XAUTHORITY:-${HOME}/.Xauthority}"

@@ -1,12 +1,8 @@
+INCLUDE gh+AppJail-makejails/user-mapping
+
 OPTION start
 OPTION overwrite=force
-OPTION volume=nanonote-data mountpoint:/data owner:25000 group:25000
+OPTION volume=nanonote-data mountpoint:/noroot owner:${puid} group:${pgid}
 
-CMD pw useradd -n nanonote -d /data -u 25000 -s /bin/sh
-CMD mkdir -p /data
-CMD chown nanonote:nanonote /data
-
-CMD echo "exec nanonote" > /data/.ratpoisonrc
-CMD chown nanonote:nanonote /data/.ratpoisonrc
-
+CMD chown -Rh noroot:noroot /noroot
 PKG nanonote xauth xrandr ratpoison xorg-fonts

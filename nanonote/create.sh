@@ -3,13 +3,32 @@
 BASEDIR=`dirname -- "$0"` || exit $?
 BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
 
-JAIL="${1:-nanonote}"
+JAIL="${X11APPJAIL_JAIL:-nanonote}"
+DATADIR="${X11APPJAIL_DATADIR:-${HOME}/x11appjail/data/${JAIL}}"
+CACHEDIR="${X11APPJAIL_CACHEDIR:-${HOME}/x11appjail/cache/${JAIL}}"
+PKG_CACHEDIR="${CACHEDIR}/pkg"
+OSVERSION="${X11APPJAIL_OSVERSION}"
 
-appjail makejail \
-	-j "${JAIL}" \
-	-o x11 \
-	-o copydir="${BASEDIR}/files" \
-	-o file="/etc/rc.conf.local" \
-	-o template="${BASEDIR}/template.conf" \
-	-o virtualnet=":<random> default" \
-	-o nat
+mkdir -p -- "${DATADIR}" || exit $?
+mkdir -p -- "${PKG_CACHEDIR}" || exit $?
+
+set --
+set -- -j "${JAIL}"
+set -- "$@" -o x11
+set -- "$@" -o copydir="${BASEDIR}/files"
+set -- "$@" -o file="/etc/rc.conf.local"
+set -- "$@" -o template="${BASEDIR}/template.conf"
+set -- "$@" -o ephemeral
+set -- "$@" -o alias
+set -- "$@" -o ip4_inherit
+set -- "$@" -o ip6_inherit
+set -- "$@" -o fstab="${DATADIR} nanonote-data <volumefs>"
+set -- "$@" -o fstab="${PKG_CACHEDIR} /var/cache/pkg"
+if [ -n "${OSVERSION}" ]; then
+    set -- "$@" -o osversion="${OSVERSION}"
+fi
+set -- "$@" --
+set -- "$@" --puid "`id -u`"
+set -- "$@" --pgid "`id -g`"
+
+exec appjail makejail "$@"
