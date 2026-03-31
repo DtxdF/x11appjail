@@ -1,6 +1,6 @@
 TigerVNC Configuration file Version 1.0
 
-ServerName=librewolf-vm
+ServerName=windows10
 QualityLevel=9
 FullScreen=on
 PreferredEncoding=Raw
