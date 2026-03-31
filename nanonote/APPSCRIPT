@@ -10,65 +10,11 @@ X11APPJAIL_JAIL="x11appjail-${APPNAME}-${UID}_${PROFILE}"; export X11APPJAIL_JAI
 
 cd -- "${APPSCRIPT_PWD:-${BASEDIR}}" || exit $?
 
-DEPENDENCIES="appjail su-exec xauth xdotool Xephyr xseticon git"
-MISSING=
+LOCKDIR="${X11APPJAIL_LOCKDIR:-${HOME}/x11appjail/locks/${JAIL}}"
 
-for dependency in ${DEPENDENCIES}; do
-    if ! which -s "${dependency}"; then
-        # Package name is different than binary name.
-        if [ "${dependency}" = "Xephyr" ]; then
-            dependency="xephyr"
-        elif [ "${dependency}" = "git" ]; then
-            dependency="git-tiny"
-        fi
+mkdir -p -- "${LOCKDIR}" || exit $?
 
-        MISSING="${MISSING} ${dependency}"
-    fi
-done
-
-EXEC_TOOL="${X11APPJAIL_EXEC_TOOL}"
-
-if [ -z "${EXEC_TOOL}" ]; then
-    if which -s doas; then
-        EXEC_TOOL="doas"
-    elif which -s sudo; then
-        EXEC_TOOL="sudo"
-    elif which -s mdo; then
-        EXEC_TOOL="mdo"
-    fi
-fi
-
-if [ -n "${MISSING}" ]; then
-    ${EXEC_TOOL} pkg install -y ${MISSING}
-fi
-
-if ! appjail status -q "${X11APPJAIL_JAIL}" > /dev/null 2>&1; then
-    if [ `uname -K` -lt 1500000 ]; then
-        if [ -z "${X11APPJAIL_OSVERSION}" ]; then
-            X11APPJAIL_OSVERSION=`freebsd-version | grep -Eo '[0-9]+\.[0-9]+-[a-zA-Z0-9]+'` || exit $?
-            export X11APPJAIL_OSVERSION
-        fi
-
-        appjail fetch www -v "${X11APPJAIL_OSVERSION}" || exit $?
-    else
-        if [ -z "${X11APPJAIL_OSVERSION}" ]; then
-            freebsd_version=`freebsd-version -k` || exit $?
-            X11APPJAIL_OSVERSION=`printf "%s" "${freebsd_version}" | grep -Eo '^[0-9]+'` || exit $?
-            export X11APPJAIL_OSVERSION
-        fi
-
-        appjail fetch pkgbase -v "${X11APPJAIL_OSVERSION}" || exit $?
-    fi
-
-    ./create.sh || exit $?
-fi
-
-XEPHYR_PID=`appjail jail list -HI -j "${X11APPJAIL_JAIL}" xephyr_pid` || exit $?
-
-if [ -z "${XEPHYR_PID}" ]; then
-    ./run.sh &
-    sleep 1
-fi
+lockf -ks "${LOCKDIR}/startup.lock" ./startup.sh || exit $?
 
 while :; do
     XEPHYR_PID=`appjail jail list -HI -j "${X11APPJAIL_JAIL}" xephyr_pid` || exit $?

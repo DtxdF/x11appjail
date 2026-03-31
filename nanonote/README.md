@@ -61,3 +61,4 @@ appscript -t -o ~/AppScripts/nanonote.appscript nanonote
 * `X11APPJAIL_DATADIR` (default: `${HOME}/x11appjail/data/${X11APPJAIL_JAIL}`): The data that must persist. The owner and group of each file will match those of the user running this AppScript.
 * `X11APPJAIL_CACHEDIR` (default: `${HOME}/x11appjail/cache/${X11APPJAIL_JAIL}`): Another directory that the jail uses to cache data, so that recreation is faster.
 * `X11APPJAIL_VIRTUALNET` (optional): When enabled, instead of inheriting the host's network stack, a virtual network specified by this environment variable is used.
+* `X11APPJAIL_LOCKDIR` (default: `${HOME}/x11appjail/locks/${X11APPJAIL_JAIL}`): Location of locks to prevent race conditions and unwanted effects in some operations.
