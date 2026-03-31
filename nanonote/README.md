@@ -60,3 +60,4 @@ appscript -t -o ~/AppScripts/nanonote.appscript nanonote
 * `X11APPJAIL_OSVERSION` (optional): Configure the `osversion` parameter of `appjail-quick(1)`. By default, this value is calculated based on the kernel version. Note that this AppScript will create the release directory using distfiles if your host has a kernel version lower than `1500000`; otherwise, `pkgbase(8)` will be used. This parameter affects the release created by `appjail-fetch(1)`.
 * `X11APPJAIL_DATADIR` (default: `${HOME}/x11appjail/data/${X11APPJAIL_JAIL}`): The data that must persist. The owner and group of each file will match those of the user running this AppScript.
 * `X11APPJAIL_CACHEDIR` (default: `${HOME}/x11appjail/cache/${X11APPJAIL_JAIL}`): Another directory that the jail uses to cache data, so that recreation is faster.
+* `X11APPJAIL_VIRTUALNET` (optional): When enabled, instead of inheriting the host's network stack, a virtual network specified by this environment variable is used.

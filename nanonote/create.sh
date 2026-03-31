@@ -8,6 +8,7 @@ DATADIR="${X11APPJAIL_DATADIR:-${HOME}/x11appjail/data/${JAIL}}"
 CACHEDIR="${X11APPJAIL_CACHEDIR:-${HOME}/x11appjail/cache/${JAIL}}"
 PKG_CACHEDIR="${CACHEDIR}/pkg"
 OSVERSION="${X11APPJAIL_OSVERSION}"
+VIRTUALNET="${X11APPJAIL_VIRTUALNET}"
 
 mkdir -p -- "${DATADIR}" || exit $?
 mkdir -p -- "${PKG_CACHEDIR}" || exit $?
@@ -19,9 +20,14 @@ set -- "$@" -o copydir="${BASEDIR}/files"
 set -- "$@" -o file="/etc/rc.conf.local"
 set -- "$@" -o template="${BASEDIR}/template.conf"
 set -- "$@" -o ephemeral
-set -- "$@" -o alias
-set -- "$@" -o ip4_inherit
-set -- "$@" -o ip6_inherit
+if [ -n "${VIRTUALNET}" ]; then
+    set -- "$@" -o virtualnet="${VIRTUALNET}:<random> default"
+    set -- "$@" -o nat
+else
+    set -- "$@" -o alias
+    set -- "$@" -o ip4_inherit
+    set -- "$@" -o ip6_inherit
+fi
 set -- "$@" -o fstab="${DATADIR} nanonote-data <volumefs>"
 set -- "$@" -o fstab="${PKG_CACHEDIR} /var/cache/pkg"
 if [ -n "${OSVERSION}" ]; then
