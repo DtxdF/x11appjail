@@ -82,4 +82,4 @@ done
 
 X11_DISPLAY=`appjail jail list -HI -j "${X11APPJAIL_JAIL}" x11_display` || exit $?
 
-exec appjail cmd jexec "${X11APPJAIL_JAIL}" -U noroot -e DISPLAY=":${X11_DISPLAY}" nanonote xterm "$@"
+exec appjail cmd jexec "${X11APPJAIL_JAIL}" -U noroot -e DISPLAY=":${X11_DISPLAY}" nanonote nanonote "$@"
