@@ -16,8 +16,10 @@ for dependency in ${DEPENDENCIES}; do
     fi
 done
 
+EXEC_TOOL="${X11APPJAIL_EXEC_TOOL:-doas}"
+
 if [ -n "${MISSING}" ]; then
-    appjail cmd jaildir pkg install -y ${MISSING}
+    "${EXEC_TOOL}" pkg install -y ${MISSING} || exit $?
 fi
 
 if ! appjail status -q "${X11APPJAIL_JAIL}" > /dev/null 2>&1; then

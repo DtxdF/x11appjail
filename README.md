@@ -16,6 +16,8 @@ These scripts are designed so that users don't have to do much to get started, b
 
 ### Privileges
 
+#### Privileges for AppJail
+
 AppJail requires privileges to run, but it can be integrated with tools such as [security/doas](https://freshports.org/security/doas) to run it as a user without root privileges. This is recommended when you are the only person using the computer and have privileges, or in cases where there are more than two sysadmins or developers on the same server with root access.
 
 **/usr/local/etc/doas.conf**:
@@ -45,6 +47,24 @@ appjail help
 ```
 
 See also: [Trusted Users on AppJail Handbook](https://appjail.readthedocs.io/en/latest/trusted-users/).
+
+#### Privileges for pkg(8)
+
+These AppScripts will check whether the dependencies are available on your system and, if not, install them. This requires privileges, so let’s configure `doas.conf(5)` based on what we’ve done previously.
+
+```
+permit nopass :appjail as root cmd pkg
+```
+
+The dependencies that will be installed:
+
+* `appjail`
+* `su-exec`
+* `xauth`
+* `xdotool`
+* `xephyr`
+* `xseticon`
+* `git-tiny`
 
 ## How to use this repository
 
@@ -85,6 +105,7 @@ All AppScripts support the following environment variables:
 * `X11APPJAIL_UNINSTALL` (optional): If set, the AppScript will delete any files during the installation phase and stop the jail.
 * `X11APPJAIL_LABEL[0-9]+` (optional): Specify `appjail-label(1)` labels to be assigned to the jail. At a minimum, you must start with `X11APPJAIL_LABEL0`.
 * `X11APPJAIL_PKG_CONF` (optional): Copy a `pkg.conf(5)` from the host as `/usr/local/etc/pkg/repos/FreeBSD.conf` inside the jail.
+* `X11APPJAIL_EXEC_TOOL` (default: `doas`): Tool for elevating privileges in order to install dependencies.
 
 In addition to the environment variables mentioned, `USER`, `HOME`, and `XAUTHORITY` can affect the execution of each AppScript. And keep in mind that each AppScript may need or use custom environment variables.
 
