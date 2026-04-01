@@ -3,7 +3,9 @@
 BASEDIR=`dirname -- "$0"` || exit $?
 BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
 
-JAIL="${X11APPJAIL_JAIL:-nanonote}"
+. "${BASEDIR}/app.conf"
+
+JAIL="${X11APPJAIL_JAIL:-${APPNAME}}"
 
 XEPHYR_ARGS="\
 -resizeable \
@@ -19,7 +21,7 @@ XEPHYR_ARGS="\
 XINERAMA \
 +extension MIT-SHM \
 -nolisten tcp \
--title \"Minimalist note taking application\""
+-title \"${APPDESCR}\""
 
 exec appjail x11 "${JAIL}" \
     exec_start="ratpoison" \

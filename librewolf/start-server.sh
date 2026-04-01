@@ -3,7 +3,9 @@
 BASEDIR=`dirname -- "$0"` || exit $?
 BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
 
-JAIL="${1:-librewolf}"
+. "${BASEDIR}/app.conf"
+
+JAIL="${X11APPJAIL_JAIL:-${APPNAME}}"
 
 XEPHYR_ARGS="\
 -resizeable \
@@ -18,10 +20,12 @@ XEPHYR_ARGS="\
 -extension \
 XINERAMA \
 +extension MIT-SHM \
--nolisten tcp"
+-nolisten tcp \
+-title \"${APPDESCR}\""
 
 exec appjail x11 "${JAIL}" \
-	exec_start="ratpoison" \
-	exec_user="librewolf" \
-	xephyr_user="${USER}" \
-	xephyr_args="${XEPHYR_ARGS}"
+    exec_start="ratpoison" \
+    exec_user="noroot" \
+    xephyr_user="${USER}" \
+    xephyr_args="${XEPHYR_ARGS}" \
+    xauthority="${XAUTHORITY:-${HOME}/.Xauthority}"

@@ -2,7 +2,7 @@ INCLUDE gh+AppJail-makejails/user-mapping
 
 OPTION start
 OPTION overwrite=force
-OPTION volume=nanonote-data mountpoint:/noroot owner:${puid} group:${pgid}
+OPTION volume=data mountpoint:/noroot owner:${puid} group:${pgid}
 
 CMD chown -Rh noroot:noroot /noroot
 PKG nanonote xauth xrandr ratpoison xorg-fonts
