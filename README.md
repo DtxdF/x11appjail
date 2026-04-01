@@ -48,7 +48,7 @@ These scripts are designed so that users don't have to do much to get started, b
 
 ## How to use this repository
 
-[AppScript](https://freshports.org/archivers/appscript) is used to package each application into its own executable. You can run these AppScripts in a portable manner or install them. Note that if you choose to run an AppScript without installing it, environment variables are not preserved, which means you must define each environment variable before running the AppScript. If you choose to install an AppScript, only environment variables prefixed with `X11APPJAIL_` and defined before running the AppScript are preserved, and the user can override them simply by defining them before running the AppScript.
+[AppScript](https://freshports.org/archivers/appscript) is used to package each application into its own executable. You can run these AppScripts in a portable manner or install them. Note that if you choose to run an AppScript without installing it, environment variables are not preserved, which means you must define each environment variable before running the AppScript. If you choose to install an AppScript, only environment variables prefixed with `X11APPJAIL_` and defined before running the AppScript are preserved, and the user can override them simply by defining them before running the installed AppScript.
 
 You can run an application from this repository by cloning it and executing the `./<APP>/APPSCRIPT` script, which is simply a POSIX shell script. Note that you cannot install an application this way.
 
