@@ -1,3 +1,4 @@
+INCLUDE gh+AppJail-makejail/pkg-quick-conf
 INCLUDE gh+AppJail-makejails/user-mapping
 
 OPTION start

@@ -64,5 +64,8 @@ else
 fi
 set -- "$@" --puid "`id -u`"
 set -- "$@" --pgid "`id -g`"
+if [ -n "${X11APPJAIL_PKG_CONF}" ]; then
+    set -- "$@" --pkg_conf "${X11APPJAIL_PKG_CONF}"
+fi
 
 exec appjail makejail "$@"
