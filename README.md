@@ -105,7 +105,7 @@ This file is used to define the parameters used by each AppScript and is self-ex
 
 These scripts are designed to be as generic as possible and are copied to the specified application using `make update`, so you shouldn't edit them in every application directory, as they will be overwritten. Instead, update them in the root directory of this repository.
 
-* `APPSCRIPT`:
+* `APPSCRIPT`
 * `create.sh`
 * `startup.sh`
 * `start-server.sh`
