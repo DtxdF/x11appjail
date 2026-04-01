@@ -126,7 +126,7 @@ This file is used to define the parameters used by each AppScript and is self-ex
 
 ### Scripts
 
-These scripts are designed to be as generic as possible and are copied to the specified application using `make update`, so you shouldn't edit them in every application directory, as they will be overwritten. Instead, update them in the root directory of this repository.
+These scripts are designed to be as generic as possible, and although they are located in the root tree of this repository, they are symlinks in each AppScript's directory to save space. When an AppScript is created using `make build` (or `make build-all`), they are resolved using `appscript(1)`'s `-L` flag.
 
 * `APPSCRIPT`
 * `create.sh`
