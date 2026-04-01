@@ -83,6 +83,7 @@ All AppScripts support the following environment variables:
 * `X11APPJAIL_VIRTUALNET` (optional): When set, instead of inheriting the host's network stack, a virtual network specified by this environment variable is used. This requires you to configure a few more things, if you haven't already. See [Packet Filter on AppJail Handbook](https://appjail.readthedocs.io/en/latest/networking/packet-filter/).
 * `X11APPJAIL_INSTALL` (optional): If set (to any value such as `1`), the AppScript will only install itself and the .desktop file within `~/.local/share/applications`. The icon is installed separately, but this depends on the specific application. The .desktop file isn't included in the AppScript; instead, it is copied directly from the jail and modified. The `Exec` entry is modified to use the `START` script mentioned earlier, and `Name` is simply suffixed with the string `(AppJail)`.
 * `X11APPJAIL_UNINSTALL` (optional): If set, the AppScript will delete any files during the installation phase and stop the jail.
+* `X11APPJAIL_LABEL[0-9]+` (optional): Specify `appjail-label(1)` labels to be assigned to the jail. At a minimum, you must start with `X11APPJAIL_LABEL0`.
 
 In addition to the environment variables mentioned, `USER`, `HOME`, and `XAUTHORITY` can affect the execution of each AppScript. And keep in mind that each AppScript may need or use custom environment variables.
 
@@ -108,6 +109,7 @@ These scripts are designed to be as generic as possible and are copied to the sp
 * `create.sh`
 * `startup.sh`
 * `start-server.sh`
+* `escape.sh`
 
 In addition to these scripts, there are scripts that can be defined in each application and that only affect the specified application:
 
