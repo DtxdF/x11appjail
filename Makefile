@@ -1,4 +1,4 @@
-APPS=nanonote librewolf
+APPS=nanonote librewolf tor-browser
 
 all: build-all
 

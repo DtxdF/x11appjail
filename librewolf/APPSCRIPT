@@ -11,17 +11,20 @@ PROFILE="${X11APPJAIL_PROFILE:-default}"
 X11APPJAIL_JAIL="x11appjail-${APPNAME}-${UID}_${PROFILE}"; export X11APPJAIL_JAIL
 LOCKDIR="${X11APPJAIL_LOCKDIR:-${HOME}/x11appjail/locks/${X11APPJAIL_JAIL}}"
 APPDIR="${X11APPJAIL_APPDIR:-${HOME}/x11appjail/apps/${X11APPJAIL_JAIL}}"
+SHAREDIR="${X11APPJAIL_SHAREDIR:-${HOME}/x11appjail/share/${X11APPJAIL_JAIL}}"
 
 cd -- "${APPSCRIPT_PWD:-${BASEDIR}}" || exit $?
 
 if [ "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_UNINSTALL}" ]; then
-    rm -rf "${APPDIR}"
-
     . "uninstall.sh"
 
     if appjail status -q "${X11APPJAIL_JAIL}" > /dev/null 2>&1; then
         appjail stop "${X11APPJAIL_JAIL}"
     fi
+
+    rm -rf "${APPDIR}"
+    rm -rf "${SHAREDIR}"
+    rm -rf "${LOCKDIR}"
 
     exit 0
 fi
@@ -36,6 +39,7 @@ if [ -n "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_INSTALL}" ]; then
     unset X11APPJAIL_INSTALL
 
     mkdir -p -- "${APPDIR}" || exit $?
+    mkdir -p -- "${SHAREDIR}" || exit $?
 
     cp -a -- "${APPSCRIPT_SCRIPT}" "${APPDIR}/APPSCRIPT" || exit $?
 

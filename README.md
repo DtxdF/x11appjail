@@ -106,6 +106,7 @@ All AppScripts support the following environment variables:
 * `X11APPJAIL_LABEL[0-9]+` (optional): Specify `appjail-label(1)` labels to be assigned to the jail. At a minimum, you must start with `X11APPJAIL_LABEL0`.
 * `X11APPJAIL_PKG_CONF` (optional): Copy a `pkg.conf(5)` from the host as `/usr/local/etc/pkg/repos/FreeBSD.conf` inside the jail.
 * `X11APPJAIL_EXEC_TOOL` (default: `doas`): Tool for elevating privileges in order to install dependencies.
+* `X11APPJAIL_SHAREDIR` (default: `${HOME}/x11appjail/share/${X11APPJAIL_JAIL}`): Miscellaneous files that the AppScript can use, such as icons.
 
 In addition to the environment variables mentioned, `USER`, `HOME`, and `XAUTHORITY` can affect the execution of each AppScript. And keep in mind that each AppScript may need or use custom environment variables.
 
@@ -142,3 +143,4 @@ In addition to these scripts, there are scripts that can be defined in each appl
 
 * [Nanonote](nanonote/README.md): Minimalist note taking application.
 * [LibreWolf](librewolf/README.md): Custom version of Firefox, focused on privacy, security and freedom.
+* [Tor Browser](tor-browser/README.md): Tor Browser for FreeBSD.
