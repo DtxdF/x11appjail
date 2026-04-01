@@ -10,6 +10,10 @@ In FreeBSD, OS-level isolation is implemented using jails, but most users prefer
 
 ## Prerequisites
 
+### AppJail configuration
+
+These scripts are designed so that users don't have to do much to get started, but at the very least, before running it, you should have preconfigured the parameters related to ZFS (if you use it) and, as a recommendation, `EXT_IF`. See `appjail.conf(5)` and the [ZFS on AppJail Handbook](https://appjail.readthedocs.io/en/latest/ZFS/) for more details.
+
 ### Privileges
 
 AppJail requires privileges to run, but it can be integrated with tools such as [security/doas](https://freshports.org/security/doas) to run it as a user without root privileges. This is recommended when you are the only person using the computer and have privileges, or in cases where there are more than two sysadmins or developers on the same server with root access.
@@ -41,10 +45,6 @@ appjail help
 ```
 
 See also: [Trusted Users on AppJail Handbook](https://appjail.readthedocs.io/en/latest/trusted-users/).
-
-### AppJail configuration
-
-These scripts are designed so that users don't have to do much to get started, but at the very least, before running it, you should have preconfigured the parameters related to ZFS (if you use it) and, as a recommendation, `EXT_IF`. See `appjail.conf(5)` and the [ZFS on AppJail Handbook](https://appjail.readthedocs.io/en/latest/ZFS/) for more details.
 
 ## How to use this repository
 
