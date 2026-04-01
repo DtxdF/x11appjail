@@ -109,7 +109,6 @@ These scripts are designed to be as generic as possible and are copied to the sp
 * `create.sh`
 * `startup.sh`
 * `start-server.sh`
-* `escape.sh`
 
 In addition to these scripts, there are scripts that can be defined in each application and that only affect the specified application:
 
