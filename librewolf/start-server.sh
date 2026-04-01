@@ -21,7 +21,7 @@ XEPHYR_ARGS="\
 XINERAMA \
 +extension MIT-SHM \
 -nolisten tcp \
--title \"${APPDESCR}\""
+-title \"${X11APPJAIL_PROFILE}: ${APPDESCR}\""
 
 exec appjail x11 "${JAIL}" \
     exec_start="ratpoison" \
