@@ -1,5 +1,9 @@
 # x11appjail: x11 applications already sandboxed by AppJail
 
+<p align="center">
+    <img src="assets/img/x11appjail.png" />
+</p>
+
 OS-level isolation is not as perfect as hardware-level virtualization. Containers run the same kernel as the host, and in most cases, if an application needs a file, a directory, or a device, these resources must be shared; therefore, this trade-off must be accepted. A vulnerability in a device (`/dev`), even if the application is running inside the container as a non-root user, could pose a risk to the host. However, all of this applies in the same way as if an application were running from the host, and even worse, since the application has more privileges. However, when implemented correctly, a containerized application is far superior, in terms of isolation, to one running from the host. You can, for example, limit the scope of devices in `/dev`, restrict the connections an application can establish, set resource limits, isolate the filesystem and processes, and much more; all in a compartmentalized manner. This means that if you want to run a web browser in a container, the fact that one is compromised does not imply that another container running your email client is at the same risk.
 
 In FreeBSD, OS-level isolation is implemented using jails, but most users prefer to use a jail manager. In our case, we use AppJail from this repository because of its flexibility and because it can safely run X11 applications thanks to `appjail-x11(1)`. See [AppJail Handbook](https://appjail.readthedocs.io/en/latest/x11/#sandboxed-x11-applications) for details.
