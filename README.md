@@ -107,6 +107,7 @@ All AppScripts support the following environment variables:
 * `X11APPJAIL_PKG_CONF` (optional): Copy a `pkg.conf(5)` from the host as `/usr/local/etc/pkg/repos/FreeBSD.conf` inside the jail.
 * `X11APPJAIL_EXEC_TOOL` (default: `doas`): Tool for elevating privileges in order to install dependencies.
 * `X11APPJAIL_SHAREDIR` (default: `${HOME}/x11appjail/share/${X11APPJAIL_JAIL}`): Miscellaneous files that the AppScript can use, such as icons.
+* `X11APPJAIL_ALLOW_HOST` (optional): Create a cookie after creating the jail and before starting the X server. Useful for clipboard access. See [Sandboxed x11 applications/Clipboard on AppJail Handbook](https://appjail.readthedocs.io/en/latest/x11/#clipboard).
 
 In addition to the environment variables mentioned, `USER`, `HOME`, and `XAUTHORITY` can affect the execution of each AppScript. And keep in mind that each AppScript may need or use custom environment variables.
 

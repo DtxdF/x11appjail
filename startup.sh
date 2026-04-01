@@ -41,6 +41,12 @@ if ! appjail status -q "${X11APPJAIL_JAIL}" > /dev/null 2>&1; then
     fi
 
     ./create.sh || exit $?
+
+    if [ -n "${X11APPJAIL_ALLOW_HOST}" ]; then
+        X11_DISPLAY=`appjail x11 "${X11APPJAIL_JAIL}" assign_only` || exit $?
+
+        xauth add localhost:${X11_DISPLAY} MIT-MAGIC-COOKIE-1 $(openssl rand -hex 16) || exit $?
+    fi
 fi
 
 if [ -z "${X11APPJAIL_INSTALL}" ]; then
