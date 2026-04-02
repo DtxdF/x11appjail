@@ -1,4 +1,4 @@
-APPS=nanonote librewolf tor-browser
+APPS=nanonote librewolf tor-browser telegram-desktop
 
 all: build-all
 
