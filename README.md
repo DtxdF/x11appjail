@@ -178,3 +178,25 @@ And then execute the snippet.
 ```
 pet exec -t librewolf
 ```
+
+### Keyboard Layout
+
+[x11/setxkbmap](https://freshports.org/x11/setxkbmap) is installed by the Makejails, so you can change the keyboard layout.
+
+At runtime, you can press `C-t :`, and then run `exec setxkbmap <layout>`. And if you want the changes to persist, add that command to your `~/x11appjail/data/<jail>/.ratpoisonrc` file.
+
+If you have allowed the host to access the X server created by `Xephyr(1)` using the `X11APPJAIL_ALLOW_HOST` environment variable, you can also use the host's `setxkbmap(1)` to change the keyboard layout from the host.
+
+### Changing escape key
+
+`ratpoison(1)`'s escape key may conflict with applications such as web browsers, so it's best to change it.
+
+**~/x11appjail/data/`<jail>`/.ratpoisonrc**:
+
+```
+escape C-e
+```
+
+### Closing an application
+
+Remember that closing `Xephyr(1)`'s window may force your application to close, which may not be desirable. First close the application and then close the window manager. For `ratpoison(1)`, just press `C-t k` to close the current window and then `C-t :` to execute the `quit` command.
