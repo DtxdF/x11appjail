@@ -40,6 +40,8 @@ if ! appjail status -q "${X11APPJAIL_JAIL}" > /dev/null 2>&1; then
         appjail fetch pkgbase -v "${X11APPJAIL_OSVERSION}" || exit $?
     fi
 
+    env PAGER=cat appjail update release -v "${X11APPJAIL_OSVERSION}" || exit $?
+
     ./create.sh || exit $?
 
     if [ -n "${X11APPJAIL_ALLOW_HOST}" ]; then
