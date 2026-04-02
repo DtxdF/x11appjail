@@ -8,6 +8,7 @@ mkdir -p -- "${ICONDIR}" || exit $?
 
 DESKTOPFILE="tor-browser.desktop"
 
+rm -f -- "${HOME}/.local/share/applications/${DESKTOPFILE}"
 appjail cmd local "${X11APPJAIL_JAIL}" cp -a usr/local/share/applications/${DESKTOPFILE} "${HOME}/.local/share/applications" || exit $?
 appjail cmd jaildir chown "${UID}:${GID}" "${HOME}/.local/share/applications/${DESKTOPFILE}" || exit $?
 sed -i '' -Ee "s|^Exec=/usr/local/lib/tor-browser/tor-browser|Exec=${APPDIR}/START|" "${HOME}/.local/share/applications/${DESKTOPFILE}" || exit $?
