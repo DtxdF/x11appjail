@@ -201,3 +201,7 @@ escape C-e
 ### Closing an application
 
 Remember that closing `Xephyr(1)`'s window may force your application to close, which may not be desirable. First close the application and then close the window manager. For `ratpoison(1)`, just press `C-t k` to close the current window and then `C-t :` to execute the `quit` command.
+
+### Icons and Cache (in XFCE)
+
+Sometimes, XFCE doesn't display icons correctly in Applications Menu. A simple workaround is to just run `xfce4-panel -r`.
