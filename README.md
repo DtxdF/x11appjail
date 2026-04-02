@@ -145,3 +145,35 @@ In addition to these scripts, there are scripts that can be defined in each appl
 * [Nanonote](nanonote/README.md): Minimalist note taking application.
 * [LibreWolf](librewolf/README.md): Custom version of Firefox, focused on privacy, security and freedom.
 * [Tor Browser](tor-browser/README.md): Tor Browser for FreeBSD.
+
+## Tips && Tricks
+
+### Using a command-line snippet manager
+
+Keeping track of which environment variables you've used isn't very practical when installing multiple AppScripts, so it's a good idea to use a snippet manager like [deskutils/pet](https://freshports.org/deskutils/pet).
+
+```sh
+pkg install -y pet fzf
+```
+
+**~/.config/pet/snippet.toml**:
+
+```toml
+[[Snippets]]
+  Description = "Install LibreWolf in a jail"
+  Output = ""
+  Tag = ["librewolf"]
+  command = "mkdir -p \"${HOME}/AppScripts\" && fetch -qo \"${HOME}/AppScripts/librewolf.appscript\" https://raw.githubusercontent.com/DtxdF/x11appjail/refs/heads/main/assets/appscripts/librewolf.appscript && chmod +x \"${HOME}/AppScripts/librewolf.appscript\" && env X11APPJAIL_INSTALL=1 X11APPJAIL_ALLOW_HOST=1 X11APPJAIL_ENABLE_SOUND=1 \"${HOME}/AppScripts/librewolf.appscript\""
+```
+
+So, if you want to update LibreWolf, uninstall it first.
+
+```
+X11APPJAIL_UNINSTALL=1 ~/x11appjail/apps/x11appjail-librewolf-`id -u`_default/START
+```
+
+And then execute the snippet.
+
+```
+pet exec -t librewolf
+```
