@@ -145,7 +145,8 @@ In addition to these scripts, there are scripts that can be defined in each appl
 * [Nanonote](nanonote/README.md): Minimalist note taking application.
 * [LibreWolf](librewolf/README.md): Custom version of Firefox, focused on privacy, security and freedom.
 * [Tor Browser](tor-browser/README.md): Tor Browser for FreeBSD.
-* [Telegram Desktop](telegram-desktop): Telegram Desktop messaging app.
+* [Telegram Desktop](telegram-desktop/README.md): Telegram Desktop messaging app.
+* [Chromium](chromium/README.md): Google web browser based on WebKit.
 
 ## Tips && Tricks
 
