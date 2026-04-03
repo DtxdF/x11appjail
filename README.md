@@ -108,6 +108,7 @@ All AppScripts support the following environment variables:
 * `X11APPJAIL_EXEC_TOOL` (default: `doas`): Tool for elevating privileges in order to install dependencies.
 * `X11APPJAIL_SHAREDIR` (default: `${HOME}/x11appjail/share/${X11APPJAIL_JAIL}`): Miscellaneous files that the AppScript can use, such as icons.
 * `X11APPJAIL_ALLOW_HOST` (optional): Create a cookie after creating the jail and before starting the X server. Useful for clipboard access. See [Sandboxed x11 applications/Clipboard on AppJail Handbook](https://appjail.readthedocs.io/en/latest/x11/#clipboard).
+* `X11APPJAIL_WRAPPER` (optional): When this environment variable is set, the user can specify an executable file that the AppScript will run instead of the one specified by the creator. See also `wrapper.sh` script for environment variables used by this script.
 
 In addition to the environment variables mentioned, `USER`, `HOME`, and `XAUTHORITY` can affect the execution of each AppScript. And keep in mind that each AppScript may need or use custom environment variables.
 
@@ -139,6 +140,7 @@ In addition to these scripts, there are scripts that can be defined in each appl
 * `install.sh` (mandatory): A script that installs any necessary files when `X11APPJAIL_INSTALL` is set. The files that need to be installed include, at a minimum, the .desktop file, preferably copied from the jail to ensure you have the most up-to-date version.
 * `uninstall.sh` (mandatory): Delete any files installed during the installation phase.
 * `arguments.sh` (optional): Additional arguments passed to `appjail-makejail(1)`. The `set` command of `sh(1)` is used to replace arguments, so you must define each new parameter using the following syntax: `set -- "$@" <new argument>`. After this file is processed, `--puid`, `--pgid` and, depending on `X11APPJAIL_PKG_CONF` environment variable, `--pkg_conf` are passed to the Makejail, so you must end your file with at least `set -- "$@" --`.
+* `wrapper.sh` (optional): By default, if no `wrapper.sh` script exists and the `X11APPJAIL_WRAPPER` environment variable isn't specified, the `exec appjail cmd jexec "${X11APPJAIL_JAIL}" -U noroot -e DISPLAY=":${X11APPJAIL_DISPLAY}" "${X11APPJAIL_APPBIN}" "$@"` command is executed. However, you can create a `wrapper.sh` script with the execute bit set within the AppScript's directory to perform actions that the default command does not. The environment variable `X11APPJAIL_DISPLAY` (without the `:` prefix) is set to the display that the process pointed to by the `X11APPJAIL_APPBIN` environment variable should have access to.
 
 ## Sandboxed Applications
 

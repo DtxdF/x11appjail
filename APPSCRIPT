@@ -56,4 +56,12 @@ if [ -n "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_INSTALL}" ]; then
     exit 0
 fi
 
-exec appjail cmd jexec "${X11APPJAIL_JAIL}" -U noroot -e DISPLAY=":${X11_DISPLAY}" "${APPBIN}" "$@"
+if [ -n "${X11APPJAIL_WRAPPER}" ]; then
+	exec env X11APPJAIL_DISPLAY="${X11_DISPLAY}" X11APPJAIL_APPBIN="${APPBIN}" \
+		"${X11APPJAIL_WRAPPER}" "$@"
+elif [ -x "${BASEDIR}/wrapper.sh" ]; then
+	exec env X11APPJAIL_DISPLAY="${X11_DISPLAY}" X11APPJAIL_APPBIN="${APPBIN}" \
+		"${BASEDIR}/wrapper.sh" "$@"
+else
+	exec appjail cmd jexec "${X11APPJAIL_JAIL}" -U noroot -e DISPLAY=":${X11_DISPLAY}" "${APPBIN}" "$@"
+fi
