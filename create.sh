@@ -9,21 +9,19 @@ JAIL="${X11APPJAIL_JAIL:-${APPNAME}}"
 
 DATADIR="${X11APPJAIL_DATADIR:-${HOME}/x11appjail/data/${JAIL}}"
 CACHEDIR="${X11APPJAIL_CACHEDIR:-${HOME}/x11appjail/cache/${JAIL}}"
-PKG_CACHEDIR="${CACHEDIR}/pkg"
 OSVERSION="${X11APPJAIL_OSVERSION}"
 VIRTUALNET="${X11APPJAIL_VIRTUALNET}"
 
 mkdir -p -- "${DATADIR}" || exit $?
-mkdir -p -- "${PKG_CACHEDIR}" || exit $?
 
 set --
 set -- -j "${JAIL}"
 set -- "$@" -o x11
-set -- "$@" -o copydir="${BASEDIR}/files"
-set -- "$@" -o file="/etc/rc.conf.local"
 set -- "$@" -o template="${BASEDIR}/template.conf"
-set -- "$@" -o ephemeral
-if [ -n "${VIRTUALNET}" ]; then
+if [ -z "${NO_EPHEMERAL}" ]; then
+    set -- "$@" -o ephemeral
+fi
+if [ -z "${LINUX_VERSION}" ] && [ -n "${VIRTUALNET}" ]; then
     set -- "$@" -o virtualnet="${VIRTUALNET}:<random> default"
     set -- "$@" -o nat
 else
@@ -32,7 +30,25 @@ else
     set -- "$@" -o ip6_inherit
 fi
 set -- "$@" -o fstab="${DATADIR} data <volumefs>"
-set -- "$@" -o fstab="${PKG_CACHEDIR} /var/cache/pkg"
+if [ -n "${LINUX_VERSION}" ]; then
+    ARCHIVES_CACHEDIR="${CACHEDIR}/archives"
+    LISTS_CACHEDIR="${CACHEDIR}/lists"
+
+    mkdir -p -- "${ARCHIVES_CACHEDIR}" || exit $?
+    mkdir -p -- "${LISTS_CACHEDIR}" || exit $?
+
+    set -- "$@" -o fstab="${ARCHIVES_CACHEDIR} /var/cache/apt/archives"
+    set -- "$@" -o fstab="${LISTS_CACHEDIR} /var/lib/apt/lists"
+    set -- "$@" -o type="linux+debootstrap"
+else
+    PKG_CACHEDIR="${CACHEDIR}/pkg"
+
+    mkdir -p -- "${PKG_CACHEDIR}" || exit $?
+
+    set -- "$@" -o fstab="${PKG_CACHEDIR} /var/cache/pkg"
+    set -- "$@" -o copydir="${BASEDIR}/files"
+    set -- "$@" -o file="/etc/rc.conf.local"
+fi
 if [ -n "${OSVERSION}" ]; then
     set -- "$@" -o osversion="${OSVERSION}"
 fi
@@ -64,7 +80,7 @@ else
 fi
 set -- "$@" --puid "`id -u`"
 set -- "$@" --pgid "`id -g`"
-if [ -n "${X11APPJAIL_PKG_CONF}" ]; then
+if [ -z "${LINUX_VERSION}" ] && [ -n "${X11APPJAIL_PKG_CONF}" ]; then
     set -- "$@" --pkg_conf "${X11APPJAIL_PKG_CONF}"
 fi
 

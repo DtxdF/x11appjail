@@ -100,12 +100,12 @@ All AppScripts support the following environment variables:
 * `X11APPJAIL_APPDIR` (default: `${HOME}/x11appjail/apps/${X11APPJAIL_JAIL}`): Directory used by installed AppScripts. Two scripts are created: `START` and `APPSCRIPT`. `START` is simply a wrapper for `APPSCRIPT` that preserves the environment variables used during AppScript installation. `APPSCRIPT` is a copy of the executed AppScript. When `START` is executed, this script will honor all environment variables passed to it, even if they are already defined.
 * `X11APPJAIL_DATADIR` (default: `${HOME}/x11appjail/data/${JAIL}`): The data that must persist. The owner and group of each file will match those of the user running the AppScript.
 * `X11APPJAIL_CACHEDIR` (default: `${HOME}/x11appjail/cache/${JAIL}`): Another directory that the jail uses to cache data, so that recreation is faster.
-* `X11APPJAIL_OSVERSION` (optional): Configure the `osversion` parameter of `appjail-quick(1)`. By default, this value is calculated based on the kernel version. Note that this AppScript will create the release directory using distfiles if your host has a kernel version lower than `1500000`; otherwise, `pkgbase(8)` will be used. This parameter affects the release created by `appjail-fetch(1)`.
-* `X11APPJAIL_VIRTUALNET` (optional): When set, instead of inheriting the host's network stack, a virtual network specified by this environment variable is used. This requires you to configure a few more things, if you haven't already. See [Packet Filter on AppJail Handbook](https://appjail.readthedocs.io/en/latest/networking/packet-filter/).
+* `X11APPJAIL_OSVERSION` (optional): Configure the `osversion` parameter of `appjail-quick(1)`. By default, this value is calculated based on the kernel version. Note that this AppScript will create the release directory using distfiles if your host has a kernel version lower than `1500000`; otherwise, `pkgbase(8)` will be used. This parameter affects the release created by `appjail-fetch(1)`. Ignored when the AppScript installs a LinuxJail.
+* `X11APPJAIL_VIRTUALNET` (optional): When set, instead of inheriting the host's network stack, a virtual network specified by this environment variable is used. This requires you to configure a few more things, if you haven't already. See [Packet Filter on AppJail Handbook](https://appjail.readthedocs.io/en/latest/networking/packet-filter/). Ignored when the AppScript installs a LinuxJail.
 * `X11APPJAIL_INSTALL` (optional): If set (to any value such as `1`), the AppScript will only install itself and the .desktop file within `~/.local/share/applications`. The icon is installed separately, but this depends on the specific application. The .desktop file isn't included in the AppScript; instead, it is copied directly from the jail and modified. The `Exec` entry is modified to use the `START` script mentioned earlier, and `Name` is simply suffixed with the string `(AppJail)`.
 * `X11APPJAIL_UNINSTALL` (optional): If set, the AppScript will delete any files during the installation phase and stop the jail.
 * `X11APPJAIL_LABEL[0-9]+` (optional): Specify `appjail-label(1)` labels to be assigned to the jail. At a minimum, you must start with `X11APPJAIL_LABEL0`.
-* `X11APPJAIL_PKG_CONF` (optional): Copy a `pkg.conf(5)` from the host as `/usr/local/etc/pkg/repos/FreeBSD.conf` inside the jail.
+* `X11APPJAIL_PKG_CONF` (optional): Copy a `pkg.conf(5)` from the host as `/usr/local/etc/pkg/repos/FreeBSD.conf` inside the jail. Ignored when the AppScript installs a LinuxJail.
 * `X11APPJAIL_EXEC_TOOL` (default: `doas`): Tool for elevating privileges in order to install dependencies.
 * `X11APPJAIL_SHAREDIR` (default: `${HOME}/x11appjail/share/${X11APPJAIL_JAIL}`): Miscellaneous files that the AppScript can use, such as icons.
 * `X11APPJAIL_ALLOW_HOST` (optional): Create a cookie after creating the jail and before starting the X server. Useful for clipboard access. See [Sandboxed x11 applications/Clipboard on AppJail Handbook](https://appjail.readthedocs.io/en/latest/x11/#clipboard).
@@ -126,6 +126,8 @@ This file is used to define the parameters used by each AppScript and is self-ex
 * `APPNAME`
 * `APPDESCR`
 * `APPBIN`
+* `LINUX_VERSION`
+* `NO_EPHEMERAL`
 
 ### Scripts
 
@@ -150,6 +152,7 @@ In addition to these scripts, there are scripts that can be defined in each appl
 * [Tor Browser](tor-browser/README.md): Tor Browser for FreeBSD.
 * [Telegram Desktop](telegram-desktop/README.md): Telegram Desktop messaging app.
 * [Chromium](chromium/README.md): Google web browser based on WebKit.
+* [Brave](brave/README.md): Brave web browser based on WebKit.
 
 ## Tips && Tricks
 

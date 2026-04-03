@@ -1,5 +1,10 @@
 #!/bin/sh
 
+BASEDIR=`dirname -- "$0"` || exit $?
+BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
+
+. "${BASEDIR}/app.conf"
+
 DEPENDENCIES="appjail su-exec xauth xdotool Xephyr xseticon git xev"
 MISSING=
 
@@ -22,25 +27,34 @@ if [ -n "${MISSING}" ]; then
     "${EXEC_TOOL}" pkg install -y ${MISSING} || exit $?
 fi
 
-if ! appjail status -q "${X11APPJAIL_JAIL}" > /dev/null 2>&1; then
-    if [ `uname -K` -lt 1500000 ]; then
-        if [ -z "${X11APPJAIL_OSVERSION}" ]; then
-            X11APPJAIL_OSVERSION=`freebsd-version | grep -Eo '[0-9]+\.[0-9]+-[a-zA-Z0-9]+'` || exit $?
-            export X11APPJAIL_OSVERSION
-        fi
+appjail status -q "${X11APPJAIL_JAIL}" > /dev/null 2>&1
 
-        appjail fetch www -v "${X11APPJAIL_OSVERSION}" || exit $?
+ERRLEVEL=$?
+
+if [ ${ERRLEVEL} -gt 1 ]; then
+    if [ -n "${LINUX_VERSION}" ]; then
+        appjail fetch debootstrap "${LINUX_VERSION}" || exit $?
+        export X11APPJAIL_OSVERSION="${LINUX_VERSION}"
     else
-        if [ -z "${X11APPJAIL_OSVERSION}" ]; then
-            freebsd_version=`freebsd-version -k` || exit $?
-            X11APPJAIL_OSVERSION=`printf "%s" "${freebsd_version}" | grep -Eo '^[0-9]+'` || exit $?
-            export X11APPJAIL_OSVERSION
+        if [ `uname -K` -lt 1500000 ]; then
+            if [ -z "${X11APPJAIL_OSVERSION}" ]; then
+                X11APPJAIL_OSVERSION=`freebsd-version | grep -Eo '[0-9]+\.[0-9]+-[a-zA-Z0-9]+'` || exit $?
+                export X11APPJAIL_OSVERSION
+            fi
+
+            appjail fetch www -v "${X11APPJAIL_OSVERSION}" || exit $?
+        else
+            if [ -z "${X11APPJAIL_OSVERSION}" ]; then
+                freebsd_version=`freebsd-version -k` || exit $?
+                X11APPJAIL_OSVERSION=`printf "%s" "${freebsd_version}" | grep -Eo '^[0-9]+'` || exit $?
+                export X11APPJAIL_OSVERSION
+            fi
+
+            appjail fetch pkgbase -v "${X11APPJAIL_OSVERSION}" || exit $?
         fi
 
-        appjail fetch pkgbase -v "${X11APPJAIL_OSVERSION}" || exit $?
+        env PAGER=cat appjail update release -v "${X11APPJAIL_OSVERSION}" || exit $?
     fi
-
-    env PAGER=cat appjail update release -v "${X11APPJAIL_OSVERSION}" || exit $?
 
     ./create.sh || exit $?
 
@@ -49,6 +63,8 @@ if ! appjail status -q "${X11APPJAIL_JAIL}" > /dev/null 2>&1; then
 
         xauth add localhost:${X11_DISPLAY} MIT-MAGIC-COOKIE-1 $(openssl rand -hex 16) || exit $?
     fi
+elif [ ${ERRLEVEL} -eq 1 ]; then
+    appjail start -- "${X11APPJAIL_JAIL}" || exit $?
 fi
 
 if [ -z "${X11APPJAIL_INSTALL}" ]; then

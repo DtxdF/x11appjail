@@ -1,0 +1,82 @@
+ARG puid=1000
+ARG pgid=1000
+ARG enable_3d?
+ARG enable_webcamd?
+ARG enable_usb?
+ARG enable_audio?
+
+OPTION start
+OPTION overwrite=force
+OPTION osversion=focal
+OPTION type=linux+debootstrap
+OPTION linuxfs
+OPTION device=include \$devfsrules_hide_all
+OPTION device=include \$devfsrules_unhide_basic
+OPTION device=include \$devfsrules_unhide_login
+OPTION device=path shm unhide
+OPTION device=path 'shm/*' unhide
+OPTION volume=data mountpoint:/noroot owner:${puid} group:${pgid}
+
+# User && group
+CMD groupadd -g "${pgid}" noroot
+CMD useradd -u "${puid}" -g "${pgid}" -d /noroot noroot
+CMD mkdir -p /noroot
+CMD chown -R noroot:noroot /noroot
+
+# Hardware acceleration
+RAW if [ -n "${enable_3d}" ]; then
+        CMD usermod -a -G video noroot
+
+        DEVICE path 'dri' unhide
+        DEVICE path 'dri/*' unhide
+        DEVICE path 'drm' unhide
+        DEVICE path 'drm/*' unhide
+        DEVICE path 'pci' unhide
+        DEVICE path 'nvidia*' unhide
+RAW fi
+
+# Webcamd
+RAW if [ -n "${enable_webcamd}" ]; then
+        CMD groupadd -g 145 webcamd
+        CMD usermod -a -G webcamd noroot
+
+        DEVICE path 'cuse*' unhide
+        DEVICE path 'video*' unhide
+RAW fi
+
+# USB
+RAW if [ -n "${enable_usb}" ]; then
+        DEVICE path 'usb' unhide
+        DEVICE path 'usb/*' unhide
+RAW fi
+
+CMD echo "deb http://archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse" > /etc/apt/sources.list
+CMD echo "deb http://archive.ubuntu.com/ubuntu/ focal-updates main restricted universe multiverse" >> /etc/apt/sources.list
+CMD echo "deb http://archive.ubuntu.com/ubuntu/ focal-security main restricted universe multiverse" >> /etc/apt/sources.list
+
+PKG --update
+PKG apt-transport-https curl gnupg pulseaudio xauth ratpoison
+
+CMD curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg \
+    https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+
+CMD echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main" |\
+    tee /etc/apt/sources.list.d/brave-browser-release.list
+
+PKG --update
+PKG brave-browser
+
+# Audio
+RAW if [ -n "${enable_audio}" ]; then
+        CMD sed -i -Ee 's/^#load-module module-oss /load-module module-oss /' /etc/pulse/default.pa
+
+        DEVICE path sndstat unhide
+        DEVICE path mixer unhide
+        DEVICE path 'mixer*' unhide
+        DEVICE path dsp unhide
+        DEVICE path 'dsp*' unhide
+        DEVICE path speaker unhide
+        DEVICE path 'speaker*' unhide
+RAW fi
+
+COPY scripts
