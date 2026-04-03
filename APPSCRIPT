@@ -47,7 +47,7 @@ if [ -n "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_INSTALL}" ]; then
         echo "#!/bin/sh"
         echo "BASEDIR=\`dirname -- \"\$0\"\` || exit \$?"
         echo "BASEDIR=\`realpath -- \"\${BASEDIR}\"\` || exit \$?"
-        export -p | grep -Ee '^export X11APPJAIL_' | sed -Ee 's/^(export X11APPJAIL_([^=]+)=.+)$/test -z "${X11APPJAIL_\2}" || \1/'
+        export -p | grep -Ee '^export X11APPJAIL_' | sed -Ee 's/^(export X11APPJAIL_([^=]+)=.+)$/test -n "${X11APPJAIL_\2}" || \1/'
         echo "\"\${BASEDIR}/APPSCRIPT\" \"\$@\""
     } > "${APPDIR}/START" || exit $?
     chmod +x "${APPDIR}/START" || exit $?
