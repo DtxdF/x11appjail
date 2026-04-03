@@ -22,6 +22,10 @@ if [ "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_UNINSTALL}" ]; then
         appjail stop "${X11APPJAIL_JAIL}"
     fi
 
+    if [ -n "${NO_EPHEMERAL}" ]; then
+        appjail jail destroy -Rf "${X11APPJAIL_JAIL}" > /dev/null 2>&1 || :
+    fi
+
     rm -rf "${APPDIR}"
     rm -rf "${SHAREDIR}"
     rm -rf "${LOCKDIR}"
