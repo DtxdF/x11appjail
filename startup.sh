@@ -1,6 +1,6 @@
 #!/bin/sh
 
-DEPENDENCIES="appjail su-exec xauth xdotool Xephyr xseticon git"
+DEPENDENCIES="appjail su-exec xauth xdotool Xephyr xseticon git xev"
 MISSING=
 
 for dependency in ${DEPENDENCIES}; do

@@ -62,6 +62,7 @@ The dependencies that will be installed:
 * `su-exec`
 * `xauth`
 * `xdotool`
+* `xev`
 * `xephyr`
 * `xseticon`
 * `git-tiny`
