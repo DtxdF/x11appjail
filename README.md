@@ -66,6 +66,7 @@ The dependencies that will be installed:
 * `xephyr`
 * `xseticon`
 * `git-tiny`
+* `debootstrap` (LinuxJails-only)
 
 ## How to use this repository
 

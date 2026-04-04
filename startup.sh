@@ -6,6 +6,11 @@ BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
 . "${BASEDIR}/app.conf"
 
 DEPENDENCIES="appjail su-exec xauth xdotool Xephyr xseticon git xev"
+
+if [ -n "${LINUX_VERSION}" ]; then
+    DEPENDENCIES="debootstrap"
+fi
+
 MISSING=
 
 for dependency in ${DEPENDENCIES}; do
