@@ -88,8 +88,7 @@ make build APP=<APP>
 make build-all
 ```
 
-If you don't feel like building AppScripts or don't want to clone this repository, there are already-to-use AppScripts in [assets/appscripts](assets/appscripts). Regardless of the path you choose, all AppScripts run in the same way: like any other executable file.
-
+If you don't feel like building AppScripts or don't want to clone this repository. Regardless of the path you choose, all AppScripts run in the same way: like any other executable file.
 
 ### Environment
 
