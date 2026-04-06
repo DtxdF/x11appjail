@@ -35,7 +35,7 @@ jobs:
             set -e -x
             set -o pipefail
             appscript -v
-            make build-all APPSUFX=`uname -m`
+            make build-all APPSUFX=-`uname -m`
       - name: Release
         id: release
         uses: softprops/action-gh-release@v2
