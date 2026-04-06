@@ -22,9 +22,19 @@ jobs:
           usesh: true
           sync: rsync
           copyback: true
+          prepare: |
+            set -e -x
+            set -o pipefail
+            sed -i "" -e 's|quarterly|latest|g' /etc/pkg/FreeBSD.conf
+            export IGNORE_OSVERSION=yes
+            pkg update -f
+            pkg install -y git-tiny
+            git clone https://github.com/DtxdF/appscript.git
+            (cd appscript; SUEXEC=command ./make.sh)
           run: |
             set -e -x
             set -o pipefail
+            appscript -v
             make build-all APPSUFX=`uname -m`
       - name: Release
         id: release
