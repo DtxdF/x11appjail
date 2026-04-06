@@ -8,7 +8,7 @@ BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
 DEPENDENCIES="appjail su-exec xauth xdotool Xephyr xseticon git xev"
 
 if [ -n "${LINUX_VERSION}" ]; then
-    DEPENDENCIES="debootstrap"
+    DEPENDENCIES="${DEPENDENCIES} debootstrap"
 fi
 
 MISSING=
