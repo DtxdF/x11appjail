@@ -88,7 +88,7 @@ make build APP=<APP>
 make build-all
 ```
 
-If you don't feel like building AppScripts or don't want to clone this repository. Regardless of the path you choose, all AppScripts run in the same way: like any other executable file.
+If you don't feel like building AppScripts or don't want to clone this repository, assets are automatically created by each release. Regardless of the path you choose, all AppScripts run in the same way: like any other executable file.
 
 ### Environment
 
@@ -171,7 +171,7 @@ pkg install -y pet fzf
   Description = "Install LibreWolf in a jail"
   Output = ""
   Tag = ["librewolf"]
-  command = "mkdir -p \"${HOME}/AppScripts\" && fetch -qo \"${HOME}/AppScripts/librewolf.appscript\" https://raw.githubusercontent.com/DtxdF/x11appjail/refs/heads/main/assets/appscripts/librewolf.appscript && chmod +x \"${HOME}/AppScripts/librewolf.appscript\" && env X11APPJAIL_INSTALL=1 X11APPJAIL_ALLOW_HOST=1 X11APPJAIL_ENABLE_SOUND=1 \"${HOME}/AppScripts/librewolf.appscript\""
+  command = "mkdir -p \"${HOME}/AppScripts\" && fetch -qo \"${HOME}/AppScripts/librewolf.appscript\" https://github.com/DtxdF/x11appjail/releases/latest/download/librewolf-amd64.appscript && chmod +x \"${HOME}/AppScripts/librewolf.appscript\" && env X11APPJAIL_INSTALL=1 X11APPJAIL_ALLOW_HOST=1 X11APPJAIL_ENABLE_SOUND=1 \"${HOME}/AppScripts/librewolf.appscript\""
 ```
 
 So, if you want to update LibreWolf, uninstall it first.
