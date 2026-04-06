@@ -1,13 +1,14 @@
-APPS=nanonote librewolf tor-browser telegram-desktop chromium brave
+APPS=		nanonote librewolf tor-browser telegram-desktop chromium brave
+APPSUFX?=
 
 all: build-all
 
 build-all:
 	@mkdir -p assets/appscripts
 .for APP in ${APPS}
-	@appscript -L -o ${PWD}/assets/appscripts/${APP}.appscript ${APP}
+	@make build APP=${APP}
 .endfor
 
 build:
 	@mkdir -p assets/appscripts
-	@appscript -L -o ${PWD}/assets/appscripts/${APP}.appscript ${APP}
+	@appscript -L -o assets/appscripts/${APP}${APPSUFX}.appscript ${APP}

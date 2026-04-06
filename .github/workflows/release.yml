@@ -1,0 +1,36 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    name: A job to run test in FreeBSD
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build
+        id: assets
+        uses: vmactions/freebsd-vm@v1.4.3
+        with:
+          # Minimal production release for maximum compatibility.
+          release: '14.4'
+          usesh: true
+          sync: rsync
+          copyback: true
+          run: |
+            set -e -x
+            set -o pipefail
+            make build-all APPSUFX=`uname -m`
+      - name: Release
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          working_directory: assets/appscripts
+          files: '*.appscript'
+          generate_release_notes: true
+          make_latest: true
