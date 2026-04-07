@@ -110,6 +110,7 @@ All AppScripts support the following environment variables:
 * `X11APPJAIL_SHAREDIR` (default: `${HOME}/x11appjail/share/${X11APPJAIL_JAIL}`): Miscellaneous files that the AppScript can use, such as icons.
 * `X11APPJAIL_ALLOW_HOST` (optional): Create a cookie after creating the jail and before starting the X server. Useful for clipboard access. See [Sandboxed x11 applications/Clipboard on AppJail Handbook](https://appjail.readthedocs.io/en/latest/x11/#clipboard).
 * `X11APPJAIL_WRAPPER` (optional): When this environment variable is set, the user can specify an executable file that the AppScript will run instead of the one specified by the creator. See also `wrapper.sh` script for environment variables used by this script.
+* `X11APPJAIL_NO_EPHEMERAL` (optional): By default, unless otherwise specified, all jails are ephemeral. After system startup, the `appjail(1)`'s `rc(8)` script (or you yourself, implicitly when executing the `Exec` entry of the .desktop file) will start the jail, and AppJail will detect that the jail is ephemeral, so it will be removed. AppJail will detect this and recreate the jail. The advantage of this is that you'll get automatic updates, but the downside is that it will initially slow down the jail's startup time depending on your system specs. With this environment variable, you can make your jail permanent.
 
 In addition to the environment variables mentioned, `USER`, `HOME`, and `XAUTHORITY` can affect the execution of each AppScript. And keep in mind that each AppScript may need or use custom environment variables.
 
