@@ -8,6 +8,32 @@ OS-level virtualization is not as perfect as hardware-level virtualization. Cont
 
 In FreeBSD, OS-level virtualization is implemented using jails, but most users prefer to use a jail manager. In our case, we use AppJail from this repository because of its flexibility and because it can safely run X11 applications thanks to `appjail-x11(1)`. See [Sandboxed x11 applications on AppJail Handbook](https://appjail.readthedocs.io/en/latest/x11/#sandboxed-x11-applications) for details.
 
+---
+
+Table of Contents
+=================
+
+* [x11appjail: x11 applications already sandboxed by AppJail](#x11appjail-x11-applications-already-sandboxed-by-appjail)
+   * [Prerequisites](#prerequisites)
+      * [AppJail configuration](#appjail-configuration)
+      * [Privileges](#privileges)
+         * [Privileges for AppJail](#privileges-for-appjail)
+         * [Privileges for pkg(8)](#privileges-for-pkg8)
+   * [How to use this repository](#how-to-use-this-repository)
+      * [Environment](#environment)
+      * [Ephemeral Jails](#ephemeral-jails)
+      * [Developing a new AppScript](#developing-a-new-appscript)
+      * [App Configuration](#app-configuration)
+      * [Scripts](#scripts)
+   * [Sandboxed Applications](#sandboxed-applications)
+   * [Tips &amp;&amp; Tricks](#tips--tricks)
+      * [Using a command-line snippet manager](#using-a-command-line-snippet-manager)
+      * [Keyboard Layout](#keyboard-layout)
+      * [Changing escape key](#changing-escape-key)
+      * [Closing an application](#closing-an-application)
+      * [Icons and Cache (in XFCE)](#icons-and-cache-in-xfce)
+   * [Demo](#demo)
+
 ## Prerequisites
 
 ### AppJail configuration
