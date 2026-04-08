@@ -180,6 +180,7 @@ In addition to these scripts, there are scripts that can be defined in each appl
 * [Telegram Desktop](telegram-desktop/README.md): Telegram Desktop messaging app.
 * [Chromium](chromium/README.md): Google web browser based on WebKit.
 * [Brave](brave/README.md): Brave web browser based on WebKit.
+* [Firefox][firefox/README.md]: Web browser based on the browser portion of Mozilla.
 
 ## Tips && Tricks
 

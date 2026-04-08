@@ -1,4 +1,4 @@
-APPS=		nanonote librewolf tor-browser telegram-desktop chromium brave
+APPS=		nanonote librewolf tor-browser telegram-desktop chromium brave firefox
 APPSUFX?=
 
 all: build-all
