@@ -14,6 +14,7 @@ Table of Contents
 =================
 
 * [x11appjail: x11 applications already sandboxed by AppJail](#x11appjail-x11-applications-already-sandboxed-by-appjail)
+* [Table of Contents](#table-of-contents)
    * [Prerequisites](#prerequisites)
       * [AppJail configuration](#appjail-configuration)
       * [Privileges](#privileges)
@@ -32,6 +33,7 @@ Table of Contents
       * [Changing escape key](#changing-escape-key)
       * [Closing an application](#closing-an-application)
       * [Icons and Cache (in XFCE)](#icons-and-cache-in-xfce)
+      * [Sharing files between jails](#sharing-files-between-jails)
    * [Demo](#demo)
 
 ## Prerequisites
