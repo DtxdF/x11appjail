@@ -212,3 +212,13 @@ Remember that closing `Xephyr(1)`'s window may force your application to close, 
 ### Icons and Cache (in XFCE)
 
 Sometimes, XFCE doesn't display icons correctly in Applications Menu. A simple workaround is to just run `xfce4-panel -r`.
+
+## Demo
+
+In these videos, [Overlord](https://github.com/DtxdF/overlord) is used to create a pristine VM to demostrate how Brave will be executed using its AppScript.
+
+https://github.com/user-attachments/assets/c60b3f22-5e91-45a6-9be7-ea7397d202e9
+
+https://github.com/user-attachments/assets/f91cbf4a-54a1-4df8-95fe-c02942e96879
+
+https://github.com/user-attachments/assets/da38f509-c848-40af-97e6-515801251618
