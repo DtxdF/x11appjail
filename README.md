@@ -239,6 +239,32 @@ Remember that closing `Xephyr(1)`'s window may force your application to close, 
 
 Sometimes, XFCE doesn't display icons correctly in Applications Menu. A simple workaround is to just run `xfce4-panel -r`.
 
+### Sharing files between jails
+
+A compromised jail can inject a backdoor into any file created within it, or the file itself may be malicious; however, sometimes it is necessary to share a file with another jail. There is no specific protocol for this, but there is a much simpler way to accomplish this job: by using a file manager.
+
+```sh
+thunar ~/x11appjail/data
+```
+
+<p align="center">
+    <img src="assets/img/thunar-1.png" />
+</p>
+
+<p align="center">
+    <img src="assets/img/thunar-2.png" />
+</p>
+
+<p align="center">
+    <img src="assets/img/thunar-3.png" />
+</p>
+
+<p align="center">
+    <img src="assets/img/thunar-4.png" />
+</p>
+
+**TIP**: Create a bookmark using CTRL-D, and then give it a meaningful name. In my case, for example, Telegram and Chromium, which are apps I use frequently.
+
 ## Demo
 
 In these videos, [Overlord](https://github.com/DtxdF/overlord) is used to create a pristine VM to demostrate how Brave will be executed using its AppScript.
