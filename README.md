@@ -34,6 +34,10 @@ Table of Contents
       * [Closing an application](#closing-an-application)
       * [Icons and Cache (in XFCE)](#icons-and-cache-in-xfce)
       * [Sharing files between jails](#sharing-files-between-jails)
+      * [Clipboard](#clipboard)
+         * [Analyzing the clipboard for malicious or misleading unicode characters](#analyzing-the-clipboard-for-malicious-or-misleading-unicode-characters)
+         * [Transferring a file](#transferring-a-file)
+         * [Synchronizing the clipboard between two X servers](#synchronizing-the-clipboard-between-two-x-servers)
    * [Demo](#demo)
 
 ## Prerequisites
@@ -267,6 +271,160 @@ thunar ~/x11appjail/data
 </p>
 
 **TIP**: Create a bookmark using CTRL-D, and then give it a meaningful name. In my case, for example, Telegram and Chromium, which are apps I use frequently.
+
+### Clipboard
+
+**Note**: The following assumes that your user has the necessary cookies to access the X servers. See `X11APPJAIL_ALLOW_HOST` environment variable.
+
+When working with the clipboard, there are two approaches to consider. The first involves simply reading the clipboard from a single X server, which applies to some applications we'll discuss later. The second involves synchronizing the clipboard between two X servers, which is likely the most common scenario, though also the least secure.
+
+Regardless of which method you choose, you need to know which display server the jailed X11 application uses:
+
+```console
+$ appjail jail list -j x11appjail-chromium-15000_default x11_display
+X11_DISPLAY
+1000
+```
+
+#### Analyzing the clipboard for malicious or misleading unicode characters
+
+Using [unicode-show](https://freshports.org/security/py-unicode-show) and [xclip](https://freshports.org/x11/xclip), we can analyze the data to detect potential malicious code, such as this "[trojan](https://github.com/nickboucher/trojan-source/blob/main/Python/commenting-out.py)":
+
+```console
+$ xclip -out -selection CLIPBOARD -display :1000 | unicode-show
+<stdin>:4: if access_level != 'none[U+202E][U+2066]': # Check if admin [U+2069][U+2066]' and access_level != 'user
+   -> '\u202e' (U+202E, RIGHT-TO-LEFT OVERRIDE, Cf)
+   -> '\u2066' (U+2066, LEFT-TO-RIGHT ISOLATE, Cf)
+   -> '\u2069' (U+2069, POP DIRECTIONAL ISOLATE, Cf)
+   -> '\u2066' (U+2066, LEFT-TO-RIGHT ISOLATE, Cf)
+<stdin>:5: [missing newline at end]
+```
+
+However, this approach has one drawback: you are parsing the clipboard, which is dynamic by nature. Even if it doesn’t contain Unicode characters or the data seems harmless, you shouldn’t assume it will remain that way a second later. You should save the clipboard’s contents to a static file and then analyze it.
+
+```console
+$ xclip -out -selection CLIPBOARD -display :1000 | tee static.txt | unicode-show
+...
+```
+
+#### Transferring a file
+
+To transfer a file, or, more commonly, an image, the application should allow you to do so. And you should consider what your goal is in this case: Do you want to copy an image to the file system? Or do you want to copy an image between two X servers? The first option is like downloading the file, while the second is more useful for copying an image between two X11 applications.
+
+To transfer an image and save it to the file system or use another application to view it, you first need to know the **TARGET**, which usually refers to the file type and then specify the target when downloading the file.
+
+```console
+$ xclip -out -selection CLIPBOARD -target TARGETS -display :1000
+TIMESTAMP
+TARGETS
+SAVE_TARGETS
+MULTIPLE
+text/x-moz-url
+chromium/x-internal-source-rfh-token
+chromium/x-source-url
+image/png
+text/html
+$ xclip -out -selection CLIPBOARD -target image/png -display :1000 | feh -
+```
+
+To transfer a file between two X servers, you can use [xclip](https://freshports.org/sysutils/xclip) again. Both the output and the input must have the **-target** set.
+
+```console
+$ xclip -out -selection CLIPBOARD -target image/png -display :1000 |\
+    xclip -in -selection CLIPBOARD -target image/png -display :0
+```
+
+An easier way is to use [xclipsync](https://freshports.org/sysutils/xclipsync), which automatically detects the **-target** on both sides.
+
+```console
+$ xclipsync -O -a :1000 -b :0
+```
+
+#### Synchronizing the clipboard between two X servers
+
+Unlike the data transfer described above, synchronization occurs in real time, implicitly, and just like when using X11 applications on the same X server. To do this, you should use a tool like [xclipsync](https://freshports.org/sysutils/xclipsync), which is specifically designed for this purpose.
+
+```console
+$ xclipsync -a :1000 -b :1001
+```
+
+Regardless of what is copied to `:1000`, when an X11 application on `:1001` requests the contents of the clipboard, the X11 application on `:1000` will transfer the data encoded in UTF-8.
+
+However, this raises a usability issue: although you can easily retrieve the display server for a specific jail using `appjail-jail(1)` `list` (or `get`), this number may change when the jail is recreated. To fix this, you can use the following command:
+
+```console
+xclipsync -a :`appjail jail list -Hj x11appjail-telegram-desktop-15000_default x11_display` -b :`appjail jail list -Hj x11appjail-chromium-15000_default x11_display`
+```
+
+Although this solves the problem of accessing the display server we don't know, it's even worse, since you have to type more characters. To improve this, append the following to your `~/.profile`:
+
+```sh
+xclipsync_host()
+{
+    local uid jail x11_display
+    local app="$1" profile="${2:-default}"
+
+    test -n "${app}" || echo "usage: xclipsync_host <app> [<profile>]" >&2
+    test -n "${app}" || return 64 # EX_USAGE
+
+    uid=`id -u`
+    jail="x11appjail-${app}-${uid}_${profile}"
+    x11_display=`appjail jail list -Hj "${jail}" x11_display` || return $?
+
+    test -n "${x11_display}" || echo "${jail}: No such display" >&2
+    test -n "${x11_display}" || return 66 # EX_NOINPUT
+
+    xclipsync -a "${DISPLAY}" -b :"${x11_display}"
+}
+
+xclipsync_apps()
+{
+    local uid
+    local jail1 jail2
+    local profile1 profile2
+    local jail1_x11_display jail2_x11_display
+    local app1="$1" app2="$2"
+
+    test -n "${app1}" || echo "usage: xclipsync_apps <app#1>[:<profile>] <app#2>[:<profile>]" >&2
+    test -n "${app1}" || return 64 # EX_USAGE
+    test -n "${app2}" || xclipsync_apps # EX_USAGE
+
+    profile1=`printf "%s" "${app1}" | cut -s -d: -f2-`
+    test -n "${profile1}" || profile1="default"
+
+    profile2=`printf "%s" "${app2}" | cut -s -d: -f2-`
+    test -n "${profile2}" || profile2="default"
+
+    uid=`id -u`
+
+    jail1="x11appjail-${app1}-${uid}_${profile1}"
+    jail2="x11appjail-${app2}-${uid}_${profile2}"
+
+    jail1_x11_display=`appjail jail list -Hj "${jail1}" x11_display` || return $?
+    test -n "${jail1_x11_display}" || echo "${jail1}: No such display" >&2
+    test -n "${jail1_x11_display}" || return 66 # EX_NOINPUT
+
+    jail2_x11_display=`appjail jail list -Hj "${jail2}" x11_display` || return $?
+    test -n "${jail2_x11_display}" || echo "${jail2}: No such display" >&2
+    test -n "${jail2_x11_display}" || return 66 # EX_NOINPUT
+
+    xclipsync -a :"${jail1_x11_display}" -b :"${jail2_x11_display}"
+}
+```
+
+Reload that file, open a new window in tmux, or reopen the console to load the functions. After that, you can synchronize the clipboard between a jailed X11 application and your host (or wherever `DISPLAY` points) using `xclipsync_host`, and synchronize the clipboard between two jailed X11 applications using `xclipsync_apps`. Note that while `xclipsync(1)` supports more selections (such as `PRIMARY` or `SECONDARY`), we use the default, `CLIPBOARD`, which is the most common.
+
+**Synchronizing the host and a jailed X11 application**:
+
+```console
+$ xclipsync_host chromium
+```
+
+**Synchronizing two jailed X11 applications**:
+
+```console
+$ xclipsync_apps telegram-desktop chromium
+```
 
 ## Demo
 
