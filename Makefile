@@ -13,7 +13,6 @@ build-all: ${TARGETS}
 
 .PHONY: build
 build:
-	@mkdir -p ${OUTDIR}
 	appscript -L -o ${OUTDIR}/${APP}.appscript ${APPSDIR}/${APP}
 
 .PHONY: clean
