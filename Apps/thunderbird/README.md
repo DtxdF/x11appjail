@@ -1,0 +1,3 @@
+# Thunderbird
+
+Thunderbird is a free and open source email, newsfeed, chat, and calendaring client, that's loaded with great features, easy to set up and customise. Core principles include the use and promotion of open standards.
