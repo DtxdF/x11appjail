@@ -32,6 +32,8 @@ if [ -n "${MISSING}" ]; then
     "${EXEC_TOOL}" pkg install -y ${MISSING} || exit $?
 fi
 
+CHECKSUM=`sha256 -q -- "${APPSCRIPT_SCRIPT}"` || exit $?
+
 while :; do
     appjail status -q "${X11APPJAIL_JAIL}" > /dev/null 2>&1
 
@@ -70,9 +72,18 @@ while :; do
             xauth add localhost:${X11_DISPLAY} MIT-MAGIC-COOKIE-1 $(openssl rand -hex 16) || exit $?
         fi
 
+        appjail label add "${X11APPJAIL_JAIL}" "x11appjail.checksum" "${CHECKSUM}" || exit $?
+
         break
     elif [ ${ERRLEVEL} -eq 1 ]; then
-        appjail start -- "${X11APPJAIL_JAIL}" || exit $?
+        _CHECKSUM=`appjail label get -l "x11appjail.checksum" "${X11APPJAIL_JAIL}" value 2> /dev/null`
+
+        if [ -z "${_CHECKSUM}" ] || [ "${CHECKSUM}" != "${_CHECKSUM}" ]; then
+            appjail jail destroy -Rf "${X11APPJAIL_JAIL}" > /dev/null 2>&1
+            continue
+        fi
+
+        appjail start "${X11APPJAIL_JAIL}" || exit $?
 
         # If jail is ephemeral, it could be destroyed at this point.
         appjail status -q "${X11APPJAIL_JAIL}" > /dev/null 2>&1
@@ -83,6 +94,14 @@ while :; do
         fi
 
         break
+    else
+        _CHECKSUM=`appjail label get -l "x11appjail.checksum" "${X11APPJAIL_JAIL}" value 2> /dev/null`
+
+        if [ -z "${_CHECKSUM}" ] || [ "${CHECKSUM}" != "${_CHECKSUM}" ]; then
+            appjail stop "${X11APPJAIL_JAIL}"
+            appjail jail destroy -Rf "${X11APPJAIL_JAIL}" > /dev/null 2>&1
+            continue
+        fi
     fi
 
     break

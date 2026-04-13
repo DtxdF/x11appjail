@@ -22,7 +22,7 @@ if [ "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_UNINSTALL}" ]; then
         appjail stop "${X11APPJAIL_JAIL}"
     fi
 
-    appjail jail destroy -Rf "${X11APPJAIL_JAIL}" > /dev/null 2>&1 || :
+    appjail jail destroy -Rf "${X11APPJAIL_JAIL}" > /dev/null 2>&1
 
     rm -rf "${APPDIR}"
     rm -rf "${SHAREDIR}"
