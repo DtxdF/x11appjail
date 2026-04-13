@@ -1,4 +1,5 @@
-APPS=		nanonote librewolf tor-browser telegram-desktop chromium brave firefox
+APPSDIR=	Apps
+APPS!=		ls ${APPSDIR}
 APPSUFX?=
 
 all: build-all
@@ -11,4 +12,4 @@ build-all:
 
 build:
 	@mkdir -p assets/appscripts
-	@appscript -L -o assets/appscripts/${APP}${APPSUFX}.appscript ${APP}
+	@appscript -L -o assets/appscripts/${APP}${APPSUFX}.appscript ${APPSDIR}/${APP}
