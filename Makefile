@@ -1,15 +1,28 @@
 APPSDIR=	Apps
 APPS!=		ls ${APPSDIR}
 APPSUFX?=
+OUTDIR?=	assets/appscripts
 
+TARGETS = ${APPS:C|(.+)|${OUTDIR}/\1${APPSUFX}.appscript|}
+
+.PHONY: all
 all: build-all
 
-build-all:
-	@mkdir -p assets/appscripts
-.for APP in ${APPS}
-	@make build APP=${APP}
-.endfor
+.PHONY: build-all
+build-all: ${TARGETS}
 
+.PHONY: build
 build:
-	@mkdir -p assets/appscripts
-	@appscript -L -o assets/appscripts/${APP}${APPSUFX}.appscript ${APPSDIR}/${APP}
+	@mkdir -p ${OUTDIR}
+	appscript -L -o ${OUTDIR}/${APP}.appscript ${APPSDIR}/${APP}
+
+.PHONY: clean
+clean:
+	rm -f -- assets/appscripts/${APP}.appscript
+
+.PHONY: cleanall
+cleanall:
+	find ${OUTDIR} -name '*.appscript' -exec rm -f {} +
+
+${TARGETS}:
+	@make build APP=${.TARGET:T:S/${APPSUFX}.appscript//}
