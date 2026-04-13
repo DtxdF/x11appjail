@@ -189,6 +189,7 @@ In addition to these scripts, there are scripts that can be defined in each appl
 * [Brave](Apps/brave/README.md): Brave web browser based on WebKit.
 * [Firefox](Apps/firefox/README.md): Web browser based on the browser portion of Mozilla.
 * [Thunderbird](Apps/thunderbird/README.md): Mozilla Thunderbird is standalone mail and news that stands above.
+* [Feh](Apps/feh/README.md): Image viewer that utilizes Imlib2.
 
 ## Tips && Tricks
 

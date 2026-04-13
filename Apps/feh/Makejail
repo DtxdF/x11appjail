@@ -1,0 +1,10 @@
+INCLUDE gh+AppJail-makejails/pkg-quick-conf
+INCLUDE gh+AppJail-makejails/user-mapping
+INCLUDE gh+AppJail-makejails/efficient-makejail
+
+OPTION start
+OPTION overwrite=force
+OPTION volume=data mountpoint:/noroot owner:${puid} group:${pgid}
+
+CMD chown -Rh noroot:noroot /noroot
+PKG feh xauth xrandr ratpoison xorg-fonts setxkbmap
