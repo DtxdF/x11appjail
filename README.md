@@ -494,7 +494,7 @@ xdg-open "$HOME/x11appjail/data/x11appjail-chromium-15000_default/Downloads/manc
     <img src="assets/img/evince-1.png" />
 </p>
 
-With this approach, when a PDF is opened, it is automatically copied to the jail and then opened. The next step is to configure Thunar to open this AppScript, but using Puck to add another layer of defense. The basic idea is to add a [custom action](https://docs.xfce.org/xfce/thunar/custom-actions) in Thunar.
+With this approach, when a PDF is opened, it is automatically copied to the jail and then opened. The next step is to configure Thunar to open this AppScript, but using Puck to add another layer of protection. The basic idea is to add a [custom action](https://docs.xfce.org/xfce/thunar/custom-actions) in Thunar.
 
 <p align="center">
     <img src="assets/img/thunar-evince-1.png" />
