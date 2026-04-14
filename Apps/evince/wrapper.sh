@@ -18,7 +18,7 @@ if [ -f "${FILE}" ]; then
     PATHNAME="/noroot/${CHECKSUM}.pdf"
     OUTPUT="${JAILDIR}${PATHNAME}"
 
-    if [ -z "${X11APPJAIL_WITH_CACHE}" ] || [ ! -f "${OUTPUT}" ]; then
+    if [ "${X11APPJAIL_WITH_CACHE:-0}" = 0 ] || [ ! -f "${OUTPUT}" ]; then
         if [ -n "${X11APPJAIL_WITH_PUCK}" ]; then
             appjail makejail \
                 -f gh+AppJail-makejails/puck \

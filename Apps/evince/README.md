@@ -7,7 +7,7 @@ Evince is a document viewer for multiple document formats including PDF and Post
 * `X11APPJAIL_WITH_PUCK` (optional): Use [puck](https://github.com/AppJail-makejails/puck) to convert a potentially untrusted PDF into a trusted one.
 * `X11APPJAIL_PUCK_RESOLUTION` (default: `300`).
 * `X11APPJAIL_PUCK_BATCH` (default: `50`).
-* `X11APPJAIL_WITH_CACHE` (optional): Don't copy the PDF to the jail if it already exists.
+* `X11APPJAIL_WITH_CACHE` (default: `0`): Don't copy the PDF to the jail if it already exists.
 
 ## Notes
 
