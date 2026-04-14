@@ -13,3 +13,4 @@ Evince is a document viewer for multiple document formats including PDF and Post
 
 * For a description of `X11APPJAIL_PUCK_RESOLUTION` and `X11APPJAIL_PUCK_BATCH`, see [gh+AppJail-makejails/puck](https://github.com/AppJail-makejails/puck).
 * The wrapper only accepts one argument. If the argument is a file (it can also detect this when the argument is prefixed with `file://`), you can optionally use Puck to convert a potentially untrusted PDF into a trusted one. Regardless of whether you use Puck, the PDF will be copied into the jail using its SHA256 hash (from the original PDF if using Puck) as the filename. If the argument is not a file, it is passed as is. A special argument is `--new-window`, used by the .desktop file.
+* This AppScript will install [x11/zenity4](https://freshports.org/x11/zenity4) when `X11APPJAIL_WITH_PUCK` is set and only when puck's Makejail is executed in order to show a progress bar.

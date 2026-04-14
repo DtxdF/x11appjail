@@ -20,6 +20,10 @@ if [ -f "${FILE}" ]; then
 
     if [ "${X11APPJAIL_WITH_CACHE:-0}" = 0 ] || [ ! -f "${OUTPUT}" ]; then
         if [ -n "${X11APPJAIL_WITH_PUCK}" ]; then
+            if ! which -s zenity; then
+                pkg install -y zenity4 || exit $?
+            fi
+
             appjail makejail \
                 -f gh+AppJail-makejails/puck \
                 -o container="args:--pull" \
@@ -28,7 +32,7 @@ if [ -f "${FILE}" ]; then
                 -V PUCK_COMPRESSION="0" \
                 -- \
                     --puck_file "${FILE}" \
-                    --puck_output "${OUTPUT}" || exit $?
+                    --puck_output "${OUTPUT}" | zenity --progress --pulsate --title="Progress" --text="Converting PDF using Ephemeral Jail" --no-cancel --auto-close || exit $?
         else
             appjail cmd local "${X11APPJAIL_JAIL}" cp -a "${FILE}" "${OUTPUT}" || exit $?
         fi
