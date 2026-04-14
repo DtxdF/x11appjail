@@ -38,6 +38,8 @@ Table of Contents
          * [Analyzing the clipboard for malicious or misleading unicode characters](#analyzing-the-clipboard-for-malicious-or-misleading-unicode-characters)
          * [Transferring a file](#transferring-a-file)
          * [Synchronizing the clipboard between two X servers](#synchronizing-the-clipboard-between-two-x-servers)
+      * [Opening an image in a jail](#opening-an-image-in-a-jail)
+      * [Opening a PDF in a jail](#opening-a-pdf-in-a-jail)
    * [Demo](#demo)
 
 ## Prerequisites
@@ -429,6 +431,98 @@ $ xclipsync_host chromium
 ```console
 $ xclipsync_apps telegram-desktop chromium
 ```
+
+### Opening an image in a jail
+
+A web browser is deployed in a jail, you download a .jpg file, Thunar is opened as described above, and you click on the potentially malicious .jpg. Except for the .jpg download, all of this occurred on the host rather than in a jail. We can fix this.
+
+```sh
+pkg remove -y feh # if you have feh installed
+mkdir -p ~/AppScripts
+fetch -o ~/AppScripts/feh.appscript https://github.com/DtxdF/x11appjail/releases/latest/download/feh-amd64.appscript
+chmod +x ~/AppScripts/feh.appscript
+X11APPJAIL_INSTALL=1 X11APPJAIL_NO_EPHEMERAL=1 ~/AppScripts/feh.appscript
+```
+
+You can just install and run the AppScript, but the core idea is to integrate the AppScript with our DE, in this case XFCE, but since we'll be using standard tools, it will integrate with any desktop environment that complies with the desktop specification.
+
+```sh
+grep -Ee '^image/' /usr/local/share/mime/types | xargs xdg-mime default feh.desktop
+```
+
+With the previous command, `feh.desktop` (`~/.local/share/applications/feh.desktop`) will be used to open files that match all MIME types of `image/*`. The next step is to test our changes.
+
+```sh
+xdg-open ~/x11appjail/data/x11appjail-chromium-15000_default/Downloads/cat.jpg
+```
+
+<p align="center">
+    <img src="assets/img/feh.png" />
+</p>
+
+### Opening a PDF in a jail
+
+You see an interesting PDF on a random website, or maybe you receive one in your email client, but you’re worried: you don’t know if the PDF is malicious.
+
+There’s an AppScript to deploy Evince in an jail, but we’re going to configure Thunar to use [Puck](https://github.com/AppJail-makejails/puck) before opening the PDF in that environment, in order to add another layer of protection.
+
+First, let's deploy Evince.
+
+```sh
+#pkg remove -y evince # if you have evince installed
+# or
+pkg remove -y evince-lite # if you have evince-lite installed
+mkdir -p ~/AppScripts
+fetch -o ~/AppScripts/evince.appscript https://github.com/DtxdF/x11appjail/releases/latest/download/evince-amd64.appscript
+chmod +x ~/AppScripts/evince.appscript
+X11APPJAIL_INSTALL=1 X11APPJAIL_NO_EPHEMERAL=1 X11APPJAIL_WITH_CACHE=1 ~/AppScripts/evince.appscript
+```
+
+Then, map the MIME type `application/pdf` to `org.gnome.Evince.desktop` (`~/.local/share/applications/org.gnome.Evince.desktop`).
+
+```sh
+xdg-mime default org.gnome.Evince.desktop application/pdf
+```
+
+The next step is to test our changes.
+
+```sh
+xdg-open "$HOME/x11appjail/data/x11appjail-chromium-15000_default/Downloads/manco17sosp-lightvm.pdf"
+```
+
+<p align="center">
+    <img src="assets/img/evince-1.png" />
+</p>
+
+With this approach, when a PDF is opened, it is automatically copied to the jail and then opened. The next step is to configure Thunar to open this AppScript, but using Puck to add another layer of defense. The basic idea is to add a [custom action](https://docs.xfce.org/xfce/thunar/custom-actions) in Thunar.
+
+<p align="center">
+    <img src="assets/img/thunar-evince-1.png" />
+</p>
+
+<p align="center">
+    <img src="assets/img/thunar-evince-2.png" />
+</p>
+
+The command we should use is
+
+```sh
+/usr/bin/env X11APPJAIL_WITH_CACHE=0 X11APPJAIL_WITH_PUCK=1 /home/user/x11appjail/apps/x11appjail-evince-15000_default/START %f
+```
+
+Remember that you can redefine environment variables at runtime, and the AppScript will honor them. We do this by setting `X11APPJAIL_WITH_CACHE=0` to invalidate any PDFs we’ve created previously, and `X11APPJAIL_WITH_PUCK=1` to convert the potentially untrusted PDF into a trusted one. And that’s where the magic happens...
+
+<p align="center">
+    <img src="assets/img/thunar-evince-3.png" />
+</p>
+
+<p align="center">
+    <img src="assets/img/thunar-evince-4.png" />
+</p>
+
+<p align="center">
+    <img src="assets/img/thunar-evince-5.png" />
+</p>
 
 ## Demo
 
