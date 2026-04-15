@@ -8,7 +8,7 @@ BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
 
 cd -- "${APPSCRIPT_PWD:-${BASEDIR}}" || exit $?
 
-if [ "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_UNINSTALL}" ]; then
+if [ -n "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_UNINSTALL}" ]; then
     "${BASEDIR}/uninstall.sh" || exit $?
 
     if appjail status -q "${X11APPJAIL_JAIL}" > /dev/null 2>&1; then
