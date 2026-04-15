@@ -169,6 +169,7 @@ This file is used to define the parameters used by each AppScript and is self-ex
 
 These scripts are designed to be as generic as possible, and although they are located in the root tree of this repository, they are symlinks in each AppScript's directory to save space. When an AppScript is created using `make build` (or `make build-all`), they are resolved using `appscript(1)`'s `-L` flag.
 
+* `default.conf`
 * `APPSCRIPT`
 * `create.sh`
 * `startup.sh`

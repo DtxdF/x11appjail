@@ -3,7 +3,12 @@
 BASEDIR=`dirname -- "$0"` || exit $?
 BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
 
+# Need to define to empty value because a user or another process can
+# define it as environment variable.
+LINUX_VERSION=
+
 . "${BASEDIR}/app.conf"
+. "${BASEDIR}/default.conf"
 
 DEPENDENCIES="appjail su-exec xauth xdotool Xephyr xseticon git xev"
 
@@ -26,13 +31,11 @@ for dependency in ${DEPENDENCIES}; do
     fi
 done
 
-EXEC_TOOL="${X11APPJAIL_EXEC_TOOL:-doas}"
-
 if [ -n "${MISSING}" ]; then
-    "${EXEC_TOOL}" pkg install -y ${MISSING} || exit $?
+    "${X11APPJAIL_EXEC_TOOL}" pkg install -y ${MISSING} || exit $?
 fi
 
-CHECKSUM=`sha256 -q -- "${APPSCRIPT_SCRIPT}"` || exit $?
+CHECKSUM=`sha256 -q -- "${APPSCRIPT_SCRIPT:-/dev/null}"` || exit $?
 
 while :; do
     appjail status -q "${X11APPJAIL_JAIL}" > /dev/null 2>&1

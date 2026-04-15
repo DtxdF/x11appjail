@@ -4,8 +4,7 @@ BASEDIR=`dirname -- "$0"` || exit $?
 BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
 
 . "${BASEDIR}/app.conf"
-
-JAIL="${X11APPJAIL_JAIL:-${APPNAME}}"
+. "${BASEDIR}/default.conf"
 
 XEPHYR_ARGS="\
 -resizeable \
@@ -21,9 +20,9 @@ XEPHYR_ARGS="\
 XINERAMA \
 +extension MIT-SHM \
 -nolisten tcp \
--title \"${X11APPJAIL_PROFILE:-default}: ${X11APPJAIL_TITLE:-${APPDESCR}}\""
+-title \"${X11APPJAIL_PROFILE}: ${X11APPJAIL_TITLE:-${APPDESCR}}\""
 
-exec appjail x11 "${JAIL}" \
+exec appjail x11 "${X11APPJAIL_JAIL}" \
     exec_start="ratpoison" \
     exec_user="noroot" \
     xephyr_user="${USER}" \

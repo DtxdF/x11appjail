@@ -4,19 +4,12 @@ BASEDIR=`dirname -- "$0"` || exit $?
 BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
 
 . "${BASEDIR}/app.conf"
-
-UID=`id -u` || exit $?
-GID=`id -g` || exit $?
-PROFILE="${X11APPJAIL_PROFILE:-default}"
-X11APPJAIL_JAIL="x11appjail-${APPNAME}-${UID}_${PROFILE}"; export X11APPJAIL_JAIL
-LOCKDIR="${X11APPJAIL_LOCKDIR:-${HOME}/x11appjail/locks/${X11APPJAIL_JAIL}}"
-APPDIR="${X11APPJAIL_APPDIR:-${HOME}/x11appjail/apps/${X11APPJAIL_JAIL}}"
-SHAREDIR="${X11APPJAIL_SHAREDIR:-${HOME}/x11appjail/share/${X11APPJAIL_JAIL}}"
+. "${BASEDIR}/default.conf"
 
 cd -- "${APPSCRIPT_PWD:-${BASEDIR}}" || exit $?
 
 if [ "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_UNINSTALL}" ]; then
-    . "uninstall.sh"
+    "${BASEDIR}/uninstall.sh" || exit $?
 
     if appjail status -q "${X11APPJAIL_JAIL}" > /dev/null 2>&1; then
         appjail stop "${X11APPJAIL_JAIL}"
@@ -24,26 +17,26 @@ if [ "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_UNINSTALL}" ]; then
 
     appjail jail destroy -Rf "${X11APPJAIL_JAIL}" > /dev/null 2>&1
 
-    rm -rf "${APPDIR}"
-    rm -rf "${SHAREDIR}"
-    rm -rf "${LOCKDIR}"
+    rm -rf "${X11APPJAIL_APPDIR}"
+    rm -rf "${X11APPJAIL_SHAREDIR}"
+    rm -rf "${X11APPJAIL_LOCKDIR}"
 
     exit 0
 fi
 
-mkdir -p -- "${LOCKDIR}" || exit $?
+mkdir -p -- "${X11APPJAIL_LOCKDIR}" || exit $?
 
-lockf -ks "${LOCKDIR}/startup.lock" ./startup.sh || exit $?
+lockf -ks "${X11APPJAIL_LOCKDIR}/startup.lock" ./startup.sh || exit $?
 
 X11_DISPLAY=`appjail jail list -HI -j "${X11APPJAIL_JAIL}" x11_display` || exit $?
 
 if [ -n "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_INSTALL}" ]; then
     unset X11APPJAIL_INSTALL
 
-    mkdir -p -- "${APPDIR}" || exit $?
-    mkdir -p -- "${SHAREDIR}" || exit $?
+    mkdir -p -- "${X11APPJAIL_APPDIR}" || exit $?
+    mkdir -p -- "${X11APPJAIL_SHAREDIR}" || exit $?
 
-    cp -a -- "${APPSCRIPT_SCRIPT}" "${APPDIR}/APPSCRIPT" || exit $?
+    cp -a -- "${APPSCRIPT_SCRIPT}" "${X11APPJAIL_APPDIR}/APPSCRIPT" || exit $?
 
     {
         echo "#!/bin/sh"
@@ -51,10 +44,11 @@ if [ -n "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_INSTALL}" ]; then
         echo "BASEDIR=\`realpath -- \"\${BASEDIR}\"\` || exit \$?"
         export -p | grep -Ee '^export X11APPJAIL_' | sed -Ee 's/^(export X11APPJAIL_([^=]+)=.+)$/test -n "${X11APPJAIL_\2}" || \1/'
         echo "\"\${BASEDIR}/APPSCRIPT\" \"\$@\""
-    } > "${APPDIR}/START" || exit $?
-    chmod +x "${APPDIR}/START" || exit $?
+    } > "${X11APPJAIL_APPDIR}/START" || exit $?
+    chmod +x "${X11APPJAIL_APPDIR}/START" || exit $?
 
-    . "install.sh"
+    "${BASEDIR}/install.sh" || exit $?
+
     exit 0
 fi
 

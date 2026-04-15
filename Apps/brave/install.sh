@@ -2,7 +2,7 @@
 
 mkdir -p -- "${HOME}/.local/share/applications" || exit $?
 
-ICONDIR="${SHAREDIR}/icons"
+ICONDIR="${X11APPJAIL_SHAREDIR}/icons"
 
 mkdir -p -- "${ICONDIR}" || exit $?
 
@@ -10,9 +10,9 @@ DESKTOPFILE="brave-browser.desktop"
 
 rm -f -- "${HOME}/.local/share/applications/${DESKTOPFILE}"
 appjail cmd local "${X11APPJAIL_JAIL}" cp -a usr/share/applications/${DESKTOPFILE} "${HOME}/.local/share/applications" || exit $?
-appjail cmd jaildir chown "${UID}:${GID}" "${HOME}/.local/share/applications/${DESKTOPFILE}" || exit $?
-sed -i '' -Ee "s|^Exec=/usr/bin/brave-browser-stable|Exec=${APPDIR}/START|" "${HOME}/.local/share/applications/${DESKTOPFILE}" || exit $?
+appjail cmd jaildir chown "${X11APPJAIL_UID}:${X11APPJAIL_GID}" "${HOME}/.local/share/applications/${DESKTOPFILE}" || exit $?
+sed -i '' -Ee "s|^Exec=/usr/bin/brave-browser-stable|Exec=${X11APPJAIL_APPDIR}/START|" "${HOME}/.local/share/applications/${DESKTOPFILE}" || exit $?
 sed -i '' -Ee 's|^Name=Brave Web Browser|Name=Brave Web Browser (AppJail)|' "${HOME}/.local/share/applications/${DESKTOPFILE}" || exit $?
 sed -i '' -Ee "s|^Icon=.+|Icon=${ICONDIR}/brave-browser.png|" "${HOME}/.local/share/applications/${DESKTOPFILE}" || exit $?
 appjail cmd local "${X11APPJAIL_JAIL}" cp -a usr/share/icons/hicolor/48x48/apps/brave-browser.png "${ICONDIR}/brave-browser.png" || exit $?
-appjail cmd jaildir chown "${UID}:${GID}" "${ICONDIR}/brave-browser.png" || exit $?
+appjail cmd jaildir chown "${X11APPJAIL_UID}:${X11APPJAIL_GID}" "${ICONDIR}/brave-browser.png" || exit $?

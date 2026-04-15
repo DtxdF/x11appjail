@@ -3,37 +3,36 @@
 BASEDIR=`dirname -- "$0"` || exit $?
 BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
 
+# See startup.sh.
+LINUX_VERSION=
+NO_EPHEMERAL=
+
 . "${BASEDIR}/app.conf"
+. "${BASEDIR}/default.conf"
 
-JAIL="${X11APPJAIL_JAIL:-${APPNAME}}"
-
-DATADIR="${X11APPJAIL_DATADIR:-${HOME}/x11appjail/data/${JAIL}}"
-CACHEDIR="${X11APPJAIL_CACHEDIR:-${HOME}/x11appjail/cache/${JAIL}}"
-OSVERSION="${X11APPJAIL_OSVERSION}"
-VIRTUALNET="${X11APPJAIL_VIRTUALNET}"
 NO_EPHEMERAL="${NO_EPHEMERAL:-${X11APPJAIL_NO_EPHEMERAL}}"
 
-mkdir -p -- "${DATADIR}" || exit $?
+mkdir -p -- "${X11APPJAIL_DATADIR}" || exit $?
 
 set --
-set -- -j "${JAIL}"
+set -- -j "${X11APPJAIL_JAIL}"
 set -- "$@" -o x11
 set -- "$@" -o template="${BASEDIR}/template.conf"
 if [ -z "${NO_EPHEMERAL}" ]; then
     set -- "$@" -o ephemeral
 fi
-if [ -z "${LINUX_VERSION}" ] && [ -n "${VIRTUALNET}" ]; then
-    set -- "$@" -o virtualnet="${VIRTUALNET}:<random> default"
+if [ -z "${LINUX_VERSION}" ] && [ -n "${X11APPJAIL_VIRTUALNET}" ]; then
+    set -- "$@" -o virtualnet="${X11APPJAIL_VIRTUALNET}:<random> default"
     set -- "$@" -o nat
 else
     set -- "$@" -o alias
     set -- "$@" -o ip4_inherit
     set -- "$@" -o ip6_inherit
 fi
-set -- "$@" -o fstab="${DATADIR} data <volumefs>"
+set -- "$@" -o fstab="${X11APPJAIL_DATADIR} data <volumefs>"
 if [ -n "${LINUX_VERSION}" ]; then
-    ARCHIVES_CACHEDIR="${CACHEDIR}/archives"
-    LISTS_CACHEDIR="${CACHEDIR}/lists"
+    ARCHIVES_CACHEDIR="${X11APPJAIL_CACHEDIR}/archives"
+    LISTS_CACHEDIR="${X11APPJAIL_CACHEDIR}/lists"
 
     mkdir -p -- "${ARCHIVES_CACHEDIR}" || exit $?
     mkdir -p -- "${LISTS_CACHEDIR}" || exit $?
@@ -42,7 +41,7 @@ if [ -n "${LINUX_VERSION}" ]; then
     set -- "$@" -o fstab="${LISTS_CACHEDIR} /var/lib/apt/lists"
     set -- "$@" -o type="linux+debootstrap"
 else
-    PKG_CACHEDIR="${CACHEDIR}/pkg"
+    PKG_CACHEDIR="${X11APPJAIL_CACHEDIR}/pkg"
 
     mkdir -p -- "${PKG_CACHEDIR}" || exit $?
 
@@ -50,8 +49,8 @@ else
     set -- "$@" -o copydir="${BASEDIR}/files"
     set -- "$@" -o file="/etc/rc.conf.local"
 fi
-if [ -n "${OSVERSION}" ]; then
-    set -- "$@" -o osversion="${OSVERSION}"
+if [ -n "${X11APPJAIL_OSVERSION}" ]; then
+    set -- "$@" -o osversion="${X11APPJAIL_OSVERSION}"
 fi
 if [ -n "${X11APPJAIL_LABEL0}" ]; then
     labels=`mktemp -d -t appscript` || exit $?
