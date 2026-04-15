@@ -389,6 +389,7 @@ xclipsync_apps()
     local uid
     local jail1 jail2
     local profile1 profile2
+    local _app1 _app2
     local jail1_x11_display jail2_x11_display
     local app1="$1" app2="$2"
 
@@ -399,8 +400,14 @@ xclipsync_apps()
     profile1=`printf "%s" "${app1}" | cut -s -d: -f2-`
     test -n "${profile1}" || profile1="default"
 
+    _app1=`printf "%s" "${app1}" | cut -s -d: -f1`
+    test -n "${_app1}" && app1="${_app1}"
+
     profile2=`printf "%s" "${app2}" | cut -s -d: -f2-`
     test -n "${profile2}" || profile2="default"
+
+    _app2=`printf "%s" "${app2}" | cut -s -d: -f1`
+    test -n "${_app2}" && app2="${_app2}"
 
     uid=`id -u`
 
