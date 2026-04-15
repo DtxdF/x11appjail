@@ -21,7 +21,7 @@ if [ -f "${FILE}" ]; then
     if [ "${X11APPJAIL_WITH_CACHE:-0}" = 0 ] || [ ! -f "${OUTPUT}" ]; then
         if [ -n "${X11APPJAIL_WITH_PUCK}" ]; then
             if ! which -s zenity; then
-                pkg install -y zenity4 || exit $?
+                "${X11APPJAIL_EXEC_TOOL:-doas}" pkg install -y zenity4 || exit $?
             fi
 
             appjail makejail \
