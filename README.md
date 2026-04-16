@@ -40,6 +40,7 @@ Table of Contents
          * [Synchronizing the clipboard between two X servers](#synchronizing-the-clipboard-between-two-x-servers)
       * [Opening an image in a jail](#opening-an-image-in-a-jail)
       * [Opening a PDF in a jail](#opening-a-pdf-in-a-jail)
+      * [Opening URLs](#opening-urls)
    * [Demo](#demo)
 
 ## Prerequisites
