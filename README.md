@@ -119,7 +119,7 @@ However, the best approach is to create an AppScript. To create an AppScript, th
 ```
 make build APP=<APP>
 # or to build everything:
-make build-all
+make -j$(nproc) build-all
 ```
 
 If you don't feel like building AppScripts or don't want to clone this repository, assets are automatically created by each release. Regardless of the path you choose, all AppScripts run in the same way: like any other executable file.
@@ -129,10 +129,12 @@ If you don't feel like building AppScripts or don't want to clone this repositor
 All AppScripts support the following environment variables:
 
 * `X11APPJAIL_JAIL`: Environment variable used by some scripts. This environment variable is always set by each AppScript and cannot be modified. The syntax used by these AppScripts is `x11appjail-<APPNAME>-<UID>_${X11APPJAIL_PROFILE}`, where `<APPNAME>` is a hardcoded name set by each AppScript in its own `app.conf` and `<UID>` is determined based on `id -u`.
-* `X11APPJAIL_PROFILE` (default: `default`): AppScripts will attempt to reuse the jail, and the jail name is based on this parameter. This parameter is used to create multiple instances of the same application. The cache and data are not shared with other instances. This is useful for isolating tasks within each jail.
+* `X11APPJAIL_PROFILE` (default: `default`): AppScripts will attempt to reuse the jail, and the jail name is based on this parameter. This parameter is used to create multiple instances of the same application. The cache and data are not shared with other instances. This is useful for isolating tasks within each jail. This environment variable must match `^[a-zA-Z0-9][a-zA-Z0-9_-]*$` to be considered valid.
 * `X11APPJAIL_LOCKDIR` (default: `${HOME}/x11appjail/locks/${X11APPJAIL_JAIL}`): Location of locks to prevent race conditions and unwanted effects in some operations.
-* `X11APPJAIL_APPDIR` (default: `${HOME}/x11appjail/apps/${X11APPJAIL_JAIL}`): Directory used by installed AppScripts. Two scripts are created: `START` and `APPSCRIPT`. `START` is simply a wrapper for `APPSCRIPT` that preserves the environment variables used during AppScript installation. `APPSCRIPT` is a copy of the executed AppScript. When `START` is executed, this script will honor all environment variables passed to it, even if they are already defined.
-* `X11APPJAIL_DATADIR` (default: `${HOME}/x11appjail/data/${JAIL}`): The data that must persist. The owner and group of each file will match those of the user running the AppScript.
+* `X11APPJAIL_APPSDIR` (default: `${HOME}/x11appjail/apps`): Root directory of `X11APPJAIL_APPDIR`.
+* `X11APPJAIL_APPDIR` (default: `${X11APPJAIL_APPSDIR}/${X11APPJAIL_JAIL}`): Directory used by installed AppScripts. Two scripts are created: `START` and `APPSCRIPT`. `START` is simply a wrapper for `APPSCRIPT` that preserves the environment variables used during AppScript installation. `APPSCRIPT` is a copy of the executed AppScript. When `START` is executed, this script will honor all environment variables passed to it, even if they are already defined.
+* `X11APPJAIL_DATA` (default: `${HOME}/x11appjail/data`): Root directory of `X11APPJAIL_DATADIR`.
+* `X11APPJAIL_DATADIR` (default: `${X11APPJAIL_DATA}/${JAIL}`): The data that must persist. The owner and group of each file will match those of the user running the AppScript.
 * `X11APPJAIL_CACHEDIR` (default: `${HOME}/x11appjail/cache/${JAIL}`): Another directory that the jail uses to cache data, so that recreation is faster.
 * `X11APPJAIL_OSVERSION` (optional): Configure the `osversion` parameter of `appjail-quick(1)`. By default, this value is calculated based on the kernel version. Note that this AppScript will create the release directory using distfiles if your host has a kernel version lower than `1500000`; otherwise, `pkgbase(8)` will be used. This parameter affects the release created by `appjail-fetch(1)`. Ignored when the AppScript installs a LinuxJail.
 * `X11APPJAIL_VIRTUALNET` (optional): When set, instead of inheriting the host's network stack, a virtual network specified by this environment variable is used. This requires you to configure a few more things, if you haven't already. See [Packet Filter on AppJail Handbook](https://appjail.readthedocs.io/en/latest/networking/packet-filter/). Ignored when the AppScript installs a LinuxJail.
@@ -146,6 +148,9 @@ All AppScripts support the following environment variables:
 * `X11APPJAIL_WRAPPER` (optional): When this environment variable is set, the user can specify an executable file that the AppScript will run instead of the one specified by the creator. See also `wrapper.sh` script for environment variables used by this script.
 * `X11APPJAIL_NO_EPHEMERAL` (optional): By default, unless otherwise specified, all jails are ephemeral. After system startup, the `appjail(1)`'s `rc(8)` script (or you yourself, implicitly when executing the `Exec` entry of the .desktop file) will start the jail, and AppJail will detect that the jail is ephemeral, so it will be removed. AppJail will detect this and recreate the jail. The advantage of this is that you'll get automatic updates, but the downside is that it will initially slow down the jail's startup time depending on your system specs. With this environment variable, you can make your jail permanent.
 * `X11APPJAIL_TITLE` (optional): Define a custom title. If none is specified, the app description will be used. Note that the title will be concatenated to the profile name. For example, if you use the profile `default` and the title `foobar`, the resulting title will be `default: foobar`.
+* `X11APPJAIL_DEBUG` (optional): Turns on debug, which is equivalent to `set -x` in every `sh(1)` script.
+* `X11APPJAIL_SERVICE` (optional): Which service to run. See [Services](Services/README.md) for details.
+* `X11APPJAIL_SERVICE_FROM` (optional): Where this service will be provided. See [Services](Services/README.md) for details.
 
 In addition to the environment variables mentioned, `USER`, `HOME`, and `XAUTHORITY` can affect the execution of each AppScript. And keep in mind that each AppScript may need or use custom environment variables.
 
@@ -174,6 +179,7 @@ These scripts are designed to be as generic as possible, and although they are l
 * `create.sh`
 * `startup.sh`
 * `start-server.sh`
+* `Services/`
 
 In addition to these scripts, there are scripts that can be defined in each application and that only affect the specified application:
 
@@ -531,6 +537,111 @@ Remember that you can redefine environment variables at runtime, and the AppScri
 <p align="center">
     <img src="assets/img/thunar-evince-5.png" />
 </p>
+
+### Opening URLs
+
+You have an X11 application, such as an instant messaging app or an email client, and you simply want to click to open a web page. However, you can’t do that because the jail containing the application doesn’t have a web browser to open it, and installing a web browser in that same jail isn’t a good idea. In x11appjail, you can safely open a URL using the [OpenURL](Services/OpenURL/README.md) service.
+
+You can run this service as follows:
+
+```sh
+env X11APPJAIL_SERVICE=OpenURL X11APPJAIL_SERVICE_FROM=telegram-desktop \
+    ~/x11appjail/apps/x11appjail-chromium-15000_default/START
+```
+
+Therefore, if a process running inside jail (in this case, `x11appjail-telegram-desktop-15000_default`) under the DE/WM (in this case, [x11-wm/ratpoison](https://freshports.org/x11-wm/ratpoison)) attempts to open a URL, a dialog box will appear on the host to confirm whether you really want to open the URL.
+
+<p align="center">
+    <img src="assets/img/OpenURL.png" />
+</p>
+
+However, it is not feasible to run this service in the foreground. Unlike the clipboard, which should only be used when absolutely necessary, this service does not open any URLs unless authorized to do so; therefore, it is feasible to let it continue running as long as our session is active. We can use XDG Autostart to run the service when our session starts and stop it when it ends, but a better alternative is to use XDG Autostart to start [sysutils/s6](https://freshports.org/sysutils/s6) as a lightweight supervisor and then define certain tasks. This has the advantage that we can debug more easily and control the execution flow, which is necessary, as we will see.
+
+In XFCE, we can do this through the GUI: `Settings > Session and Startup > Application Autostart`. The resulting .desktop file is:
+
+**~/.config/autostart/s6.desktop**:
+
+```
+[Desktop Entry]
+Encoding=UTF-8
+Version=0.9.4
+Type=Application
+Name=s6
+Comment=
+Exec=s6-svscan /home/user/.s6/sv
+OnlyShowIn=XFCE;
+RunHook=0
+StartupNotify=false
+Terminal=false
+Hidden=false
+
+```
+
+The tree directory of *scandir* is, at least on my `$HOME`:
+
+```
+$ tree -pug ~/.s6/
+[drwxr-xr-x user     user    ]  /home/user/.s6/
+└── [drwxr-xr-x user     user    ]  sv
+    └── [drwxr-xr-x user     user    ]  OpenURL-telegram
+        ├── [drwx-ws--T user     user    ]  event
+        ├── [-rwxr-xr-x user     user    ]  finish
+        ├── [-rwxr-xr-x user     user    ]  run
+        └── [drwx------ user     user    ]  supervise
+            ├── [prw------- user     user    ]  control
+            ├── [-rw-r--r-- user     user    ]  death_tally
+            ├── [-rw-r--r-- user     user    ]  lock
+            └── [-rw-r--r-- user     user    ]  status
+
+5 directories, 6 files
+```
+
+However, only the following files are relevant:
+
+**~/.s6/sv/OpenURL-telegram/run**:
+
+```sh
+#!/bin/sh
+
+exec env X11APPJAIL_SERVICE=OpenURL X11APPJAIL_SERVICE_FROM=telegram-desktop \
+    "${HOME}/x11appjail/apps/x11appjail-chromium-15000_default/START"
+```
+
+**~/.s6/sv/OpenURL-telegram/finish**:
+
+```sh
+#!/bin/sh
+
+kill -- -"$4"
+```
+
+The rest of the files just indicate that s6 is currently running. All you have to do is restart your session, and s6 will start running along with the service.
+
+```console
+$ s6-svstat ~/.s6/sv/OpenURL-telegram
+up (pid 75838 pgid 75838) 2537 seconds
+```
+
+Note that while the service is running, you cannot reinstall the AppScript, or you will see the following error:
+
+```console
+$ pet exec -t chrome
+...
+cp: /home/user/x11appjail/apps/x11appjail-chromium-15000_default/APPSCRIPT: Text file busy
+exit status 1
+```
+
+To update the AppScript correctly, first stop the service, and then reinstall the AppScript:
+
+```console
+$ s6-svc -d ~/.s6/sv/OpenURL-telegram
+$ s6-svstat ~/.s6/sv/OpenURL-telegram
+down (signal SIGTERM) 13 seconds, normally up, ready 13 seconds
+$ pet exec -t chrome
+...
+```
+
+**Note**: If you plan to use a supervisor other than s6, make sure it allows you to terminate the process group and that it uses `SIGTERM` instead of `SIGKILL`, since AppJail or other scripts may use this signal.
 
 ## Demo
 

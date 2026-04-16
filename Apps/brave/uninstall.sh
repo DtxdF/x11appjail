@@ -1,3 +1,3 @@
 #!/bin/sh
 
-rm -f -- "${HOME}/.local/share/applications/brave-browser.desktop"
+rm -f -- "${HOME}/.local/share/applications/${X11APPJAIL_PROFILE}-brave-browser.desktop"

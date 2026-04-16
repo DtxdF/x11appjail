@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=OpenURL
+Exec=/noroot/.x11appjail/services/OpenURL/agent %u
+Type=Application
+NoDisplay=true

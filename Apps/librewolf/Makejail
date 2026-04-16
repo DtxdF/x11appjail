@@ -11,7 +11,7 @@ CMD pw groupmod -n video -m noroot
 CMD pw groupadd -n webcamd -g 145 -M noroot
 
 CMD chown -Rh noroot:noroot /noroot
-PKG librewolf dbus xauth xrandr ratpoison xorg-fonts mesa-dri mesa-libs setxkbmap
+PKG librewolf dbus xauth xrandr ratpoison xorg-fonts mesa-dri mesa-libs setxkbmap xdg-utils
 
 SERVICE dbus enable
 SERVICE dbus start

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-rm -f -- "${HOME}/.local/share/applications/feh.desktop"
+rm -f -- "${HOME}/.local/share/applications/${X11APPJAIL_PROFILE}-feh.desktop"

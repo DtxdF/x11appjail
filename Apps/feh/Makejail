@@ -7,4 +7,4 @@ OPTION overwrite=force
 OPTION volume=data mountpoint:/noroot owner:${puid} group:${pgid}
 
 CMD chown -Rh noroot:noroot /noroot
-PKG feh xauth xrandr ratpoison xorg-fonts setxkbmap
+PKG feh xauth xrandr ratpoison xorg-fonts setxkbmap xdg-utils

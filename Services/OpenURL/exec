@@ -1,0 +1,66 @@
+#!/bin/sh
+
+if [ -n "${X11APPJAIL_DEBUG}" ]; then
+    set -x
+fi
+
+BASEDIR=`dirname -- "$0"` || exit $?
+BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
+
+. "${BASEDIR}/../../app.conf"
+. "${BASEDIR}/../../default.conf"
+
+read URL
+
+escape_url()
+{
+    printf '%s' "$1" | od -v -An -t u1 | awk '
+{
+    for (i = 1; i <= NF; i++) {
+        if ($i >= 32 && $i <= 126 && $i != 34) {
+            printf("%c", $i)
+        } else {
+            printf("%%%02X", $i)
+        }
+    }
+}'
+}
+
+open_url=false
+
+for ALLOW in ${X11APPJAIL_SRV_OPENURL_ALLOW}; do
+    if printf "%s" "${URL}" | grep -qEe "${ALLOW}"; then
+        open_url=true
+        break
+    fi
+done
+
+if ! ${open_url}; then
+    if ! which -s "zenity"; then
+        "${X11APPJAIL_EXEC_TOOL}" pkg install -y zenity4 >&2 || exit $?
+    fi
+
+    DISPLAY_URL=`escape_url "${URL}"` || exit $?
+
+    LANG=en_US.UTF-8 zenity --question \
+        --width=400 \
+        --title="[${X11APPJAIL_SERVICE_FROM}] Opening a URL ..." \
+        --text="Do you want to open \"${DISPLAY_URL}\" in [${APPNAME}:${X11APPJAIL_PROFILE}]?"
+
+    if [ $? -eq 0 ]; then
+        open_url=true
+    else
+        open_url=false
+    fi
+fi
+
+WRAPPER="${X11APPJAIL_APPDIR}/START"
+
+if ${open_url}; then
+    unset X11APPJAIL_SERVICE
+    unset X11APPJAIL_SERVICE_FROM
+
+    exec "${WRAPPER}" -- "${URL}"
+fi
+
+exit 0

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-rm -f -- "${HOME}/.local/share/applications/librewolf.desktop"
+rm -f -- "${HOME}/.local/share/applications/${X11APPJAIL_PROFILE}-librewolf.desktop"

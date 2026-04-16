@@ -1,10 +1,19 @@
 #!/bin/sh
 
+if [ -n "${X11APPJAIL_DEBUG}" ]; then
+    set -x
+fi
+
 BASEDIR=`dirname -- "$0"` || exit $?
 BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
 
 . "${BASEDIR}/app.conf"
 . "${BASEDIR}/default.conf"
+
+if ! printf "%s" "${X11APPJAIL_PROFILE}" | grep -qEe '^[a-zA-Z0-9][a-zA-Z0-9_-]*$'; then
+    echo "${0##*/}: ${X11APPJAIL_SERVICE}: invalid profile name" >&2
+    exit 1
+fi
 
 cd -- "${APPSCRIPT_PWD:-${BASEDIR}}" || exit $?
 
@@ -20,6 +29,12 @@ if [ -n "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_UNINSTALL}" ]; then
     rm -rf "${X11APPJAIL_APPDIR}"
     rm -rf "${X11APPJAIL_SHAREDIR}"
     rm -rf "${X11APPJAIL_LOCKDIR}"
+
+    exit 0
+fi
+
+if [ -n "${X11APPJAIL_SERVICE}" ] && [ -n "${X11APPJAIL_SERVICE_FROM}" ]; then
+    "${BASEDIR}/Services/service.sh" || exit $?
 
     exit 0
 fi

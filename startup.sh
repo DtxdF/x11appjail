@@ -1,5 +1,9 @@
 #!/bin/sh
 
+if [ -n "${X11APPJAIL_DEBUG}" ]; then
+    set -x
+fi
+
 BASEDIR=`dirname -- "$0"` || exit $?
 BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
 
