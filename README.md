@@ -222,17 +222,13 @@ pkg install -y pet fzf
   command = "mkdir -p \"${HOME}/AppScripts\" && fetch -qo \"${HOME}/AppScripts/librewolf.appscript\" https://github.com/DtxdF/x11appjail/releases/latest/download/librewolf-amd64.appscript && chmod +x \"${HOME}/AppScripts/librewolf.appscript\" && env X11APPJAIL_INSTALL=1 X11APPJAIL_ALLOW_HOST=1 X11APPJAIL_ENABLE_SOUND=1 \"${HOME}/AppScripts/librewolf.appscript\""
 ```
 
-So, if you want to update LibreWolf, uninstall it first.
-
-```
-X11APPJAIL_UNINSTALL=1 ~/x11appjail/apps/x11appjail-librewolf-`id -u`_default/START
-```
-
-And then execute the snippet.
+Then execute the snippet.
 
 ```
 pet exec -t librewolf
 ```
+
+Even if the current binary is overwritten, the jail isn't recreated unless it does not exist or the AppScript detects that the checksum is different (as defined in the `x11appjail.checksum` label created using `appjail-label(1)`), so you can simply rerun the snippet to easily update the jail.
 
 ### Keyboard Layout
 
