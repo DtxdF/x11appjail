@@ -1,0 +1,31 @@
+#!/bin/sh
+
+appjail status -q -- "${JAIL}" > /dev/null 2>&1
+
+ERRLEVEL=$?
+
+if [ ${ERRLEVEL} -ne 0 ]; then
+    exit 0
+fi
+
+if appjail cmd jexec "${JAIL}" -U noroot [ ! -d "/noroot/.config/dunst" ]; then
+    appjail cmd jexec "${JAIL}" -U noroot mkdir -p /noroot/.config/dunst || exit $?
+fi
+
+if appjail cmd jexec "${JAIL}" -U noroot [ ! -d "/noroot/.config/dunst/dunstrc.d" ]; then
+    appjail cmd jexec "${JAIL}" -U noroot mkdir -p /noroot/.config/dunst/dunstrc.d || exit $?
+fi
+
+if appjail cmd jexec "${JAIL}" -U noroot [ ! -f "/noroot/.config/dunst/dunstrc" ]; then
+    appjail cmd jexec "${JAIL}" -U noroot touch /noroot/.config/dunst/dunstrc || exit $?
+fi
+
+cat << "EOF" | appjail cmd jexec "${JAIL}" -U noroot sh -c "cat > /noroot/.config/dunst/dunstrc.d/00-x11appjail.conf" || exit $?
+[x11appjail]
+summary = "*"
+script = /noroot/.x11appjail/services/Notification/agent
+skip_display = true
+history_ignore = yes
+EOF
+
+exit 0

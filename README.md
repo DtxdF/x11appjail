@@ -41,6 +41,7 @@ Table of Contents
       * [Opening an image in a jail](#opening-an-image-in-a-jail)
       * [Opening a PDF in a jail](#opening-a-pdf-in-a-jail)
       * [Opening URLs](#opening-urls)
+      * [Receiving notifications](#receiving-notifications)
    * [Demo](#demo)
 
 ## Prerequisites
@@ -554,20 +555,42 @@ Therefore, if a process running inside jail (in this case, `x11appjail-telegram-
 
 However, it is not feasible to run this service in the foreground. Unlike the clipboard, which should only be used when absolutely necessary, this service does not open any URLs unless authorized to do so; therefore, it is feasible to let it continue running as long as our session is active. We can use XDG Autostart to run the service when our session starts and stop it when it ends, but a better alternative is to use XDG Autostart to start [sysutils/s6](https://freshports.org/sysutils/s6) as a lightweight supervisor and then define certain tasks. This has the advantage that we can debug more easily and control the execution flow, which is necessary, as we will see.
 
-In XFCE, we can do this through the GUI: `Settings > Session and Startup > Application Autostart`. The resulting .desktop file is:
+In XFCE, we can do this through the GUI: `Settings > Session and Startup > Application Autostart`. The resulting .desktop files are:
 
-**~/.config/autostart/s6.desktop**:
+**~/.config/autostart/start-s6.desktop**:
+
+This .desktop file is responsible for running s6 after we start our DE session.
 
 ```
 [Desktop Entry]
 Encoding=UTF-8
 Version=0.9.4
 Type=Application
-Name=s6
+Name=start-s6
 Comment=
 Exec=s6-svscan /home/user/.s6/sv
 OnlyShowIn=XFCE;
 RunHook=0
+StartupNotify=false
+Terminal=false
+Hidden=false
+
+```
+
+**~/.config/autostart/stop-s6.desktop**:
+
+And this will stop s6 and the services. This is necessary because, if we restart our DE session, s6 will not inherit the new environment variables such as the one used by D-Bus.
+
+```
+[Desktop Entry]
+Encoding=UTF-8
+Version=0.9.4
+Type=Application
+Name=stop-s6
+Comment=
+Exec=s6-svscanctl -t /home/user/.s6/sv
+OnlyShowIn=XFCE;
+RunHook=1
 StartupNotify=false
 Terminal=false
 Hidden=false
@@ -639,6 +662,50 @@ $ pet exec -t chrome
 ```
 
 **Note**: If you plan to use a supervisor other than s6, make sure it allows you to terminate the process group and that it uses `SIGTERM` instead of `SIGKILL`, since AppJail or other scripts may use this signal.
+
+### Receiving notifications
+
+Modern X11 applications, especially those that act as clients for one or more protocols, such as a web browser, an email client, or an instant messaging app, typically support notifications. Although you can install a notification daemon in each jail and receive notifications this way, the problem is that it doesn’t adapt very well to every new application deployed on your system, and they will likely become useless because, if the window isn’t active, you won’t realize you’ve received a notification and will miss it after a while.
+
+In x11appjail, there is a service that solves this problem called [Notification](Services/Notification/README.md).
+
+```sh
+exec env X11APPJAIL_SERVICE=Notification X11APPJAIL_SERVICE_FROM=thunderbird \
+    ~/x11appjail/apps/x11appjail-thunderbird-15000_default/START
+```
+
+As with OpenURL, it could be better to use s6 to run this service.
+
+**~/.s6/sv/Notification-thunderbird/run**:
+
+```sh
+#!/bin/sh
+
+exec env X11APPJAIL_SERVICE=Notification X11APPJAIL_SERVICE_FROM=thunderbird \
+    "${HOME}/x11appjail/apps/x11appjail-thunderbird-15000_default/START"
+```
+
+**~/.s6/sv/Notification-thunderbird/finish**:
+
+```sh
+#!/bin/sh
+
+kill -- -"$4"
+```
+
+Assuming that s6 is already running:
+
+```sh
+$ s6-svscanctl -a ~/.s6/sv
+$ s6-svstat ~/.s6/sv/Notification-thunderbird/
+up (pid 35432 pgid 35432) 5138 seconds
+```
+
+<p align="center">
+    <img src="assets/img/Notification.png" />
+</p>
+
+**Note**: [sysutils/dunst](https://freshports.org/sysutils/dunst) is installed in x11appjail applications that use notifications, but it is only configured when this service is running; therefore, if you already have the application running (such as Thunderbird in the previous example), you may need to rerun the AppScript, since the application inside the jail might run `dunst(1)` without the configuration that calls the installed agent. If you see notifications within the X server created by `Xephyr(1)` instead of by your host, this means you need to restart the AppScript: simply close the application and rerun the AppScript from your menu launcher.
 
 ## Demo
 

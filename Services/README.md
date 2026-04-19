@@ -13,3 +13,4 @@ However, a service should be kept as minimal as possible, and if it executes oth
 ## Current Services
 
 * [OpenURL](OpenURL/README.md)
+* [Notification](Notification/README.md)

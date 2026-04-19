@@ -1,0 +1,38 @@
+#!/bin/sh
+
+if [ -n "${X11APPJAIL_DEBUG}" ]; then
+    set -x
+fi
+
+BASEDIR=`dirname -- "$0"` || exit $?
+BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
+
+. "${BASEDIR}/../../app.conf"
+. "${BASEDIR}/../../default.conf"
+
+read NOTIFICATION_APPNAME
+read -t 1 NOTIFICATION_SUMMARY
+read -t 1 NOTIFICATION_BODY
+read -t 1 NOTIFICATION_ICON_PATH
+read -t 1 NOTIFICATION_URGENCY
+
+NOTIFICATION_BODY=`printf "%s" "${NOTIFICATION_BODY}" | base64 -d`
+
+ERRLEVEL=$?
+
+if [ ${ERRLEVEL} -ne 0 ]; then
+    echo "Notification: malformed body detected: ${NOTIFICATION_BODY}"
+    exit 0
+fi
+
+if ! which -s "notify-send"; then
+    "${X11APPJAIL_EXEC_TOOL}" pkg install -y libnotify >&2 || exit $?
+fi
+
+notify-send \
+    -a "[${X11APPJAIL_SERVICE_FROM}] ${NOTIFICATION_APPNAME}" \
+    -u "${NOTIFICATION_URGENCY}" \
+    -i /usr/local/share/appjail/Isotype.png \
+        -- "${NOTIFICATION_SUMMARY}" "${NOTIFICATION_BODY}"
+
+exit 0

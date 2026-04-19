@@ -26,20 +26,6 @@ escape_url()
 }'
 }
 
-dbus_run_session()
-{
-    if which -s "dbus-run-session"; then
-        dbus-run-session "$@"
-        return $?
-    fi
-
-    local _o
-    while getopts ":" _o; do done
-    shift $((OPTIND-1))
-
-    "$@"
-}
-
 open_url=false
 
 for ALLOW in ${X11APPJAIL_SRV_OPENURL_ALLOW}; do
@@ -56,7 +42,7 @@ if ! ${open_url}; then
 
     DISPLAY_URL=`escape_url "${URL}"` || exit $?
 
-    printf "%s" "${DISPLAY_URL}" | LANG=en_US.UTF-8 dbus_run_session -- zenity --text-info \
+    printf "%s" "${DISPLAY_URL}" | LANG=en_US.UTF-8 zenity --text-info \
         --no-markup \
         --width=420 \
         --title="[${X11APPJAIL_SERVICE_FROM}] Do you want to open this URL in [${APPNAME}:${X11APPJAIL_PROFILE}]?" \
