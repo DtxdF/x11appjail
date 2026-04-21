@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -o pipefail
+
 FILE="$1"
 FILE="${FILE#file://}"
 
@@ -15,7 +17,8 @@ if [ -f "${FILE}" ]; then
     FILE=`realpath -- "${FILE}"` || exit $?
     CHECKSUM=`sha256 -q -- "${FILE}"` || exit $?
     JAILDIR=`appjail cmd local "${X11APPJAIL_JAIL}" realpath .` || exit $?
-    PATHNAME="/noroot/${CHECKSUM}.pdf"
+    FILENAME="${CHECKSUM}.pdf"
+    PATHNAME="/noroot/${FILENAME}"
     OUTPUT="${JAILDIR}${PATHNAME}"
 
     if [ "${X11APPJAIL_WITH_CACHE:-0}" = 0 ] || [ ! -f "${OUTPUT}" ]; then
@@ -32,7 +35,14 @@ if [ -f "${FILE}" ]; then
                 -V PUCK_COMPRESSION="0" \
                 -- \
                     --puck_file "${FILE}" \
-                    --puck_output "${OUTPUT}" | zenity --progress --pulsate --title="Progress" --text="Converting PDF using Ephemeral Jail" --no-cancel --auto-close || exit $?
+                    --puck_output "${OUTPUT}" | zenity --progress --pulsate --title="Progress" --text="Converting PDF using Ephemeral Jail" --no-cancel --auto-close
+
+            ERRLEVEL=$?
+
+            if [ ${ERRLEVEL} -ne 0 ]; then
+                env LC_LANG=en_US.UTF-8 zenity --error --icon=/usr/local/share/appjail/Isotype.png --text="Error converting PDF '${FILENAME}'"
+                exit ${ERRLEVEL}
+            fi
         else
             appjail cmd local "${X11APPJAIL_JAIL}" cp -a "${FILE}" "${OUTPUT}" || exit $?
         fi
