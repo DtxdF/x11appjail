@@ -4,6 +4,7 @@ INCLUDE gh+AppJail-makejails/efficient-makejail
 
 OPTION start
 OPTION overwrite=force
+OPTION type=thick
 OPTION volume=data mountpoint:/noroot owner:${puid} group:${pgid}
 
 CMD chown -Rh noroot:noroot /noroot
