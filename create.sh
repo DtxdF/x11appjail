@@ -73,6 +73,13 @@ if [ -n "${X11APPJAIL_LABEL0}" ]; then
     rm -rf -- "${labels}"
     unset labels index label_file label
 fi
+if [ -n "${X11APPJAIL_OCI_FROM}" ]; then
+    set -- "$@" -o from="${X11APPJAIL_OCI_FROM}"
+
+    if [ -n "${X11APPJAIL_OCI_ARGS}" ]; then
+        set -- "$@" -o container="${X11APPJAIL_OCI_ARGS}"
+    fi
+fi
 if [ -f "${BASEDIR}/arguments.sh" ]; then
     . "${BASEDIR}/arguments.sh"
 else

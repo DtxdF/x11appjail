@@ -8,4 +8,12 @@ OPTION type=thick
 OPTION volume=data mountpoint:/noroot owner:${puid} group:${pgid}
 
 CMD chown -Rh noroot:noroot /noroot
-PKG evince-lite xauth xrandr ratpoison xorg-fonts setxkbmap xdg-utils
+RAW packages=
+RAW for package in evince-lite xauth xrandr ratpoison xorg-fonts setxkbmap xdg-utils; do
+        RAW if ! appjail pkg jail "${APPJAIL_JAILNAME}" info -e "${package}"; then
+                RAW packages="${packages} ${package}"
+        RAW fi
+RAW done
+RAW if [ -n "${packages}" ]; then
+        PKG ${packages}
+RAW fi

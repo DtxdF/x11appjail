@@ -153,6 +153,8 @@ All AppScripts support the following environment variables:
 * `X11APPJAIL_DEBUG` (optional): Turns on debug, which is equivalent to `set -x` in every `sh(1)` script.
 * `X11APPJAIL_SERVICE` (optional): Which service to run. See [Services](Services/README.md) for details.
 * `X11APPJAIL_SERVICE_FROM` (optional): Where this service will be provided. See [Services](Services/README.md) for details.
+* `X11APPJAIL_OCI_FROM` (optional): Use an OCI image. This is useful for customizing the jail in ways not intended by default. This has the good side-effect that `appjail-fetch(1)` isn't called, since the OCI image is supposed to contain all the packages needed for the AppScript’s Makejail that you want to use, and each Makejail will only call `appjail-pkg(1)` if any packages are missing. This cannot be used with LinuxJails.
+* `X11APPJAIL_OCI_ARGS` (optional): See `container` option in `appjail-quick(1)`.
 
 In addition to the environment variables mentioned, `USER`, `HOME`, and `XAUTHORITY` can affect the execution of each AppScript. And keep in mind that each AppScript may need or use custom environment variables.
 

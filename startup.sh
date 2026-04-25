@@ -39,6 +39,11 @@ if [ -n "${MISSING}" ]; then
     "${X11APPJAIL_EXEC_TOOL}" pkg install -y ${MISSING} || exit $?
 fi
 
+if [ -n "${LINUX_VERSION}" -a -n "${X11APPJAIL_OCI_FROM}" ]; then
+    echo "${0##*/}: cannot use an OCI image with this AppScript" >&2
+    exit 1
+fi
+
 CHECKSUM=`sha256 -q -- "${APPSCRIPT_SCRIPT:-/dev/null}"` || exit $?
 
 while :; do
@@ -51,24 +56,28 @@ while :; do
             appjail fetch debootstrap "${LINUX_VERSION}" || exit $?
             export X11APPJAIL_OSVERSION="${LINUX_VERSION}"
         else
-            if [ `uname -K` -lt 1500000 ]; then
-                if [ -z "${X11APPJAIL_OSVERSION}" ]; then
-                    X11APPJAIL_OSVERSION=`freebsd-version | grep -Eo '[0-9]+\.[0-9]+-[a-zA-Z0-9]+'` || exit $?
-                    export X11APPJAIL_OSVERSION
+            if [ -z "${X11APPJAIL_OCI_FROM}" ]; then
+                if [ `uname -K` -lt 1500000 ]; then
+                    if [ -z "${X11APPJAIL_OSVERSION}" ]; then
+                        X11APPJAIL_OSVERSION=`freebsd-version | grep -Eo '[0-9]+\.[0-9]+-[a-zA-Z0-9]+'` || exit $?
+                        export X11APPJAIL_OSVERSION
+                    fi
+
+                    appjail fetch www -v "${X11APPJAIL_OSVERSION}" || exit $?
+                else
+                    if [ -z "${X11APPJAIL_OSVERSION}" ]; then
+                        freebsd_version=`freebsd-version -k` || exit $?
+                        X11APPJAIL_OSVERSION=`printf "%s" "${freebsd_version}" | grep -Eo '^[0-9]+'` || exit $?
+                        export X11APPJAIL_OSVERSION
+                    fi
+
+                    appjail fetch pkgbase -v "${X11APPJAIL_OSVERSION}" || exit $?
                 fi
 
-                appjail fetch www -v "${X11APPJAIL_OSVERSION}" || exit $?
+                env PAGER=cat appjail update release -v "${X11APPJAIL_OSVERSION}" || exit $?
             else
-                if [ -z "${X11APPJAIL_OSVERSION}" ]; then
-                    freebsd_version=`freebsd-version -k` || exit $?
-                    X11APPJAIL_OSVERSION=`printf "%s" "${freebsd_version}" | grep -Eo '^[0-9]+'` || exit $?
-                    export X11APPJAIL_OSVERSION
-                fi
-
-                appjail fetch pkgbase -v "${X11APPJAIL_OSVERSION}" || exit $?
+                unset X11APPJAIL_OSVERSION
             fi
-
-            env PAGER=cat appjail update release -v "${X11APPJAIL_OSVERSION}" || exit $?
         fi
 
         ./create.sh || exit $?

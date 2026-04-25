@@ -12,7 +12,15 @@ CMD pw groupmod -n video -m noroot
 CMD pw groupadd -n webcamd -g 145 -M noroot
 
 CMD chown -Rh noroot:noroot /noroot
-PKG librewolf dbus xauth xrandr ratpoison xorg-fonts mesa-dri mesa-libs setxkbmap xdg-utils dunst
+RAW packages=
+RAW for package in librewolf dbus xauth xrandr ratpoison xorg-fonts mesa-dri mesa-libs setxkbmap xdg-utils dunst; do
+        RAW if ! appjail pkg jail "${APPJAIL_JAILNAME}" info -e "${package}"; then
+                RAW packages="${packages} ${package}"
+        RAW fi
+RAW done
+RAW if [ -n "${packages}" ]; then
+        PKG ${packages}
+RAW fi
 
 SERVICE dbus enable
 SERVICE dbus start
