@@ -9,7 +9,7 @@ OPTION volume=data mountpoint:/noroot owner:${puid} group:${pgid}
 
 CMD chown -Rh noroot:noroot /noroot
 RAW packages=
-RAW for package in nanonote xrandr ratpoison xorg-fonts setxkbmap xdg-utils; do
+RAW for package in nanonote xauth xrandr ratpoison xorg-fonts setxkbmap xdg-utils; do
         RAW if ! appjail pkg jail "${APPJAIL_JAILNAME}" info -e "${package}"; then
                 RAW packages="${packages} ${package}"
         RAW fi
