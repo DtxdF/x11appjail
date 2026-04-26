@@ -19,7 +19,7 @@ RAW for package in telegram-desktop dbus xauth xrandr ratpoison xorg-fonts mesa-
         RAW fi
 RAW done
 RAW if [ -n "${packages}" ]; then
-        PKG ${packages}
+        RAW appjail pkg jail "${APPJAIL_JAILNAME}" install -y ${packages}
 RAW fi
 
 SERVICE dbus enable

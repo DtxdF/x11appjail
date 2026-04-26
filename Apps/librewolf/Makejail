@@ -19,7 +19,7 @@ RAW for package in librewolf dbus xauth xrandr ratpoison xorg-fonts mesa-dri mes
         RAW fi
 RAW done
 RAW if [ -n "${packages}" ]; then
-        PKG ${packages}
+        RAW appjail pkg jail "${APPJAIL_JAILNAME}" install -y ${packages}
 RAW fi
 
 SERVICE dbus enable

@@ -15,5 +15,5 @@ RAW for package in nanonote xrandr ratpoison xorg-fonts setxkbmap xdg-utils; do
         RAW fi
 RAW done
 RAW if [ -n "${packages}" ]; then
-        PKG ${packages}
+        RAW appjail pkg jail "${APPJAIL_JAILNAME}" install -y ${packages}
 RAW fi

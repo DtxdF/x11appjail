@@ -15,5 +15,5 @@ RAW for package in evince-lite xauth xrandr ratpoison xorg-fonts setxkbmap xdg-u
         RAW fi
 RAW done
 RAW if [ -n "${packages}" ]; then
-        PKG ${packages}
+        RAW appjail pkg jail "${APPJAIL_JAILNAME}" install -y ${packages}
 RAW fi
