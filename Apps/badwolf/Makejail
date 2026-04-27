@@ -1,0 +1,26 @@
+INCLUDE gh+AppJail-makejails/pkg-quick-conf
+INCLUDE gh+AppJail-makejails/user-mapping
+INCLUDE gh+AppJail-makejails/efficient-makejail
+
+OPTION start
+OPTION overwrite=force
+OPTION type=thick
+OPTION volume=data mountpoint:/noroot owner:${puid} group:${pgid}
+
+# Without devices, this is useless.
+CMD pw groupmod -n video -m noroot
+CMD pw groupadd -n webcamd -g 145 -M noroot
+
+CMD chown -Rh noroot:noroot /noroot
+RAW packages=
+RAW for package in badwolf dbus xauth xrandr ratpoison xorg-fonts mesa-dri mesa-libs setxkbmap xdg-utils dunst; do
+        RAW if ! appjail pkg jail "${APPJAIL_JAILNAME}" info -e "${package}"; then
+                RAW packages="${packages} ${package}"
+        RAW fi
+RAW done
+RAW if [ -n "${packages}" ]; then
+        RAW appjail pkg jail "${APPJAIL_JAILNAME}" install -y ${packages}
+RAW fi
+
+SERVICE dbus enable
+SERVICE dbus start
