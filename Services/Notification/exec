@@ -32,7 +32,7 @@ fi
 notify-send \
     -a "[${X11APPJAIL_SERVICE_FROM}] ${NOTIFICATION_APPNAME}" \
     -u "${NOTIFICATION_URGENCY}" \
-    -i /usr/local/share/appjail/Isotype.png \
+    -n /usr/local/share/appjail/Isotype.png \
         -- "${NOTIFICATION_SUMMARY}" "${NOTIFICATION_BODY}"
 
 exit 0
