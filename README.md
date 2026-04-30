@@ -378,8 +378,10 @@ xclipsync_host()
     local uid jail x11_display
     local app="$1" profile="${2:-default}"
 
-    test -n "${app}" || echo "usage: xclipsync_host <app> [<profile>]" >&2
-    test -n "${app}" || return 64 # EX_USAGE
+    if [ -z "${app}" ]; then
+        echo "usage: xclipsync_host <app> [<profile>]" >&2
+        return 64 # EX_USAGE
+    fi
 
     uid=`id -u`
     jail="x11appjail-${app}-${uid}_${profile}"
@@ -400,9 +402,10 @@ xclipsync_apps()
     local jail1_x11_display jail2_x11_display
     local app1="$1" app2="$2"
 
-    test -n "${app1}" || echo "usage: xclipsync_apps <app#1>[:<profile>] <app#2>[:<profile>]" >&2
-    test -n "${app1}" || return 64 # EX_USAGE
-    test -n "${app2}" || xclipsync_apps # EX_USAGE
+    if [ -z "${app1}" -o -z "${app2}" ]; then
+        echo "usage: xclipsync_apps <app#1>[:<profile>] <app#2>[:<profile>]" >&2
+        return 64 # EX_USAGE
+    fi
 
     profile1=`printf "%s" "${app1}" | cut -s -d: -f2-`
     test -n "${profile1}" || profile1="default"
