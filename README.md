@@ -648,16 +648,7 @@ $ s6-svstat ~/.s6/sv/OpenURL-telegram
 up (pid 75838 pgid 75838) 2537 seconds
 ```
 
-Note that while the service is running, you cannot reinstall the AppScript, or you will see the following error:
-
-```console
-$ pet exec -t chrome
-...
-cp: /home/user/x11appjail/apps/x11appjail-chromium-15000_default/APPSCRIPT: Text file busy
-exit status 1
-```
-
-To update the AppScript correctly, first stop the service, and then reinstall the AppScript:
+You can reinstall the AppScript and it will work fine, but the service will continue to use the old code, so it's best to stop the service, reinstall the AppScript, and then start again the service.
 
 ```console
 $ s6-svc -d ~/.s6/sv/OpenURL-telegram
@@ -665,6 +656,7 @@ $ s6-svstat ~/.s6/sv/OpenURL-telegram
 down (signal SIGTERM) 13 seconds, normally up, ready 13 seconds
 $ pet exec -t chrome
 ...
+$ s6-svc -u ~/.s6/sv/OpenURL-telegram
 ```
 
 **Note**: If you plan to use a supervisor other than s6, make sure it allows you to terminate the process group and that it uses `SIGTERM` instead of `SIGKILL`, since AppJail or other scripts may use this signal.

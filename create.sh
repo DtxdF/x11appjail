@@ -53,7 +53,7 @@ if [ -n "${X11APPJAIL_OSVERSION}" ]; then
     set -- "$@" -o osversion="${X11APPJAIL_OSVERSION}"
 fi
 if [ -n "${X11APPJAIL_LABEL0}" ]; then
-    labels=`mktemp -d -t appscript` || exit $?
+    labels=`mktemp -d -t x11appjail` || exit $?
     index=0
 
     env | grep -Ee '^X11APPJAIL_LABEL[0-9]+=.*$' | while IFS= read -r env; do

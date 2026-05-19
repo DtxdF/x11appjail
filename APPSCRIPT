@@ -51,6 +51,7 @@ if [ -n "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_INSTALL}" ]; then
     mkdir -p -- "${X11APPJAIL_APPDIR}" || exit $?
     mkdir -p -- "${X11APPJAIL_SHAREDIR}" || exit $?
 
+    rm -f -- "${X11APPJAIL_APPDIR}/APPSCRIPT" || exit $?
     cp -a -- "${APPSCRIPT_SCRIPT}" "${X11APPJAIL_APPDIR}/APPSCRIPT" || exit $?
 
     {
@@ -58,7 +59,7 @@ if [ -n "${APPSCRIPT_SCRIPT}" ] && [ -n "${X11APPJAIL_INSTALL}" ]; then
         echo "BASEDIR=\`dirname -- \"\$0\"\` || exit \$?"
         echo "BASEDIR=\`realpath -- \"\${BASEDIR}\"\` || exit \$?"
         export -p | grep -Ee '^export X11APPJAIL_' | sed -Ee 's/^(export X11APPJAIL_([^=]+)=.+)$/test -n "${X11APPJAIL_\2}" || \1/'
-        echo "\"\${BASEDIR}/APPSCRIPT\" \"\$@\""
+        echo "exec \"\${BASEDIR}/APPSCRIPT\" \"\$@\""
     } > "${X11APPJAIL_APPDIR}/START" || exit $?
     chmod +x "${X11APPJAIL_APPDIR}/START" || exit $?
 
