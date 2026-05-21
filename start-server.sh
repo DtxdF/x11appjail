@@ -12,6 +12,7 @@ BASEDIR=`realpath -- "${BASEDIR}"` || exit $?
 
 XEPHYR_ARGS="\
 -resizeable \
+-no-host-grab \
 +extension RANDR \
 +extension RENDER \
 +extension GLX \
