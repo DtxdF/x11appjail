@@ -42,6 +42,7 @@ Table of Contents
       * [Opening a PDF in a jail](#opening-a-pdf-in-a-jail)
       * [Opening URLs](#opening-urls)
       * [Receiving notifications](#receiving-notifications)
+      * [Dark mode and Zenity](#dark-mode-and-zenity)
    * [Demo](#demo)
 
 ## Prerequisites
@@ -706,6 +707,28 @@ up (pid 35432 pgid 35432) 5138 seconds
 </p>
 
 **Note**: [sysutils/dunst](https://freshports.org/sysutils/dunst) is installed in x11appjail applications that use notifications, but it is only configured when this service is running; therefore, if you already have the application running (such as Thunderbird in the previous example), you may need to rerun the AppScript, since the application inside the jail might run `dunst(1)` without the configuration that calls the installed agent. If you see notifications within the X server created by `Xephyr(1)` instead of by your host, this means you need to restart the AppScript: simply close the application and rerun the AppScript from your menu launcher.
+
+### Dark mode and Zenity
+
+> You don't know the power of the dark side.
+— Darth Vader
+
+Sometimes you prefer darkness to light—or maybe you don't, but your eyes do. If your desktop doesn't change the appearance of Zenity (a GTK app), you can force it to do so using xdg-desktop-portal and gsettings.
+
+```sh
+pkg install -y xdg-desktop-portal xdg-desktop-portal-gtk
+```
+
+**~/.config/xdg-desktop-portal/portals.conf**:
+
+```ini
+[preferred]
+default=gtk
+```
+
+```sh
+gsettings set org.gnome.desktop.interface color-scheme prefer-dark
+```
 
 ## Demo
 
