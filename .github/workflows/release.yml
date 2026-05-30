@@ -28,14 +28,16 @@ jobs:
             sed -i "" -e 's|quarterly|latest|g' /etc/pkg/FreeBSD.conf
             export IGNORE_OSVERSION=yes
             pkg update -f
-            pkg install -y git-tiny
+            pkg install -y git-tiny aarch64-freebsd-sysroot
             git clone https://github.com/DtxdF/appscript.git
             (cd appscript; SUEXEC=command ./make.sh)
           run: |
             set -e -x
             set -o pipefail
             appscript -v
-            make -j$(nproc) build-all APPSUFX=-`uname -m`
+            make -j$(nproc) build-all
+            make -j$(nproc) build-all ARCH=aarch64
+            wait
       - name: Release
         id: release
         uses: softprops/action-gh-release@v2
