@@ -208,6 +208,7 @@ In addition to these scripts, there are scripts that can be defined in each appl
 * [Evince](Apps/evince/README.md): GNOME multi-format document viewer without GNOME dependencies.
 * [Badwolf](Apps/badwolf/README.md): Minimalist and privacy-oriented WebKitGTK browser.
 * [VLC](Apps/vlc/README.md): Qt based multimedia player and streaming server.
+* [RustDesk](Apps/rustdesk/README.md): Open-source remote desktop application designed for self-hosting.
 
 ## Tips && Tricks
 

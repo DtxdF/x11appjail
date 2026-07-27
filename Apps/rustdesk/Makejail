@@ -1,0 +1,100 @@
+ARG puid=1000
+ARG pgid=1000
+ARG enable_3d?
+ARG enable_webcamd?
+ARG enable_usb?
+ARG enable_audio?
+ARG sudopass?
+
+OPTION start
+OPTION overwrite=force
+OPTION osversion=bookworm
+OPTION type=linux+debootstrap
+OPTION linuxfs
+OPTION device=include \$devfsrules_hide_all
+OPTION device=include \$devfsrules_unhide_basic
+OPTION device=include \$devfsrules_unhide_login
+OPTION device=path shm unhide
+OPTION device=path 'shm/*' unhide
+OPTION volume=data mountpoint:/noroot owner:${puid} group:${pgid}
+
+# User && group
+CMD groupadd -g "${pgid}" noroot
+CMD useradd -u "${puid}" -g "${pgid}" -d /noroot noroot
+CMD mkdir -p /noroot
+CMD chown -R noroot:noroot /noroot
+
+# RustDesk ask for password in settings.
+CMD if [ -n "${sudopass}" ]; then \
+      echo "noroot:${sudopass}" | chpasswd; \
+    else \
+      passwd -d noroot; \
+    fi
+
+# Hardware acceleration
+RAW if [ -n "${enable_3d}" ]; then
+        CMD usermod -a -G video noroot
+
+        DEVICE path 'dri' unhide
+        DEVICE path 'dri/*' unhide
+        DEVICE path 'drm' unhide
+        DEVICE path 'drm/*' unhide
+        DEVICE path 'pci' unhide
+        DEVICE path 'nvidia*' unhide
+RAW fi
+
+# Webcamd
+RAW if [ -n "${enable_webcamd}" ]; then
+        CMD groupadd -g 145 webcamd
+        CMD usermod -a -G webcamd noroot
+
+        DEVICE path 'cuse*' unhide
+        DEVICE path 'video*' unhide
+RAW fi
+
+# USB
+RAW if [ -n "${enable_usb}" ]; then
+        DEVICE path 'usb' unhide
+        DEVICE path 'usb/*' unhide
+RAW fi
+
+CMD export DEBIAN_FRONTEND=noninteractive; \
+    apt update; \
+    apt install -y wget pulseaudio jq xorg sudo ratpoison
+
+# sudo requires this.
+CMD sed -i -Ee "s#(^127\.0\.0\.1\s+localhost)\$#\1 $(hostname)#" /etc/hosts
+
+# sudoers
+CMD echo 'noroot	ALL=(ALL:ALL) ALL' > /etc/sudoers.d/noroot
+
+# Audio
+RAW if [ -n "${enable_audio}" ]; then
+        CMD sed -i -Ee 's/^#load-module module-oss /load-module module-oss /' /etc/pulse/default.pa
+
+        DEVICE path sndstat unhide
+        DEVICE path mixer unhide
+        DEVICE path 'mixer*' unhide
+        DEVICE path dsp unhide
+        DEVICE path 'dsp*' unhide
+        DEVICE path speaker unhide
+        DEVICE path 'speaker*' unhide
+RAW fi
+
+CMD set -xe; \
+    \
+    export DEBIAN_FRONTEND=noninteractive; \
+    \
+    ARCH=$(uname -m); \
+    \
+    case "$ARCH" in \
+      amd64) ARCH="x86_64" ;; \
+      arm64) ARCH="aarch64" ;; \
+    esac; \
+    \
+    DEB_URL=$(wget -qO- https://api.github.com/repos/rustdesk/rustdesk/releases/latest | jq -r --arg arch "$ARCH" '.assets[] | select(.name | endswith($arch + ".deb")) | .browser_download_url'); \
+    wget $DEB_URL; \
+    \
+    apt install -y ./$(basename $DEB_URL); \
+    \
+    rm -f ./$(basename $DEB_URL)
