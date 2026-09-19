@@ -383,15 +383,39 @@ SERVICES
 	  Before opening a URL with xdg-open(1), the user is prompted to allow
 	  or deny opening the URL.
 
-	  -a option specifies a space-separated list of allowed URLs using a
-	  pattern valid for grep(1) (with extended regular expressions). This
-	  means no prompt is displayed to the user; the URL opens directly.
+	  If the URL matches a list of regular expressions grep(1) (with
+	  extended regular expressions). defined by the -a option, no
+	  confirmation dialog is displayed and the URL is opened directly.
+	  If it does not match or if this list of regular expressions is not
+	  defined, a confirmation dialog box is displayed, and the URL is
+	  shown in percent-encoded format for non-ASCII (7-bit) characters and
+	  the  character, so that even invisible Unicode characters can be
+	  parsed in this way. The  character is percent-encoded because this
+	  character is already used in the dialog box where the URL is
+	  displayed. However, even though the URL is shown in percent-encoded
+	  for non-ASCII (7-bit) characters and the  character, the URL is
+	  passed as-is.
 
      Notification appspec
 	  Allow the jail to notify the host using notify-send(1).
 
 	  Note that sysutils/dunst must be installed in the jail for this to
 	  work.
+
+	  This service receives the app name, summary, body (base64-encoded),
+	  icon path, and urgency of a notification created from a jail via
+	  stdin.
+	  The message body may contain special characters, such as newlines,
+	  tabs, etc., but the rendering of these characters depends entirely
+	  on your system's notification daemon, which typically supports a
+	  limited number of HTML tags. The icon path is completely ignored,
+	  and AppJail's icon is used instead.
+	  After receiving the first input, the app name, this service will
+	  wait for the remaining inputs, but with a timeout set to 1 second to
+	  prevent a malicious behaviour by the jail.
+	  Once all parameters have been received and the body has been
+	  successfully decoded, notify-send(1) is used to create a
+	  notification.
 
      System services are stored in
      /usr/local/libexec/x11appjail/service.d/<service>/, while user services
