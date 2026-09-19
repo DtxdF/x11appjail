@@ -656,6 +656,8 @@ service()
 
     shift
 
+    build_appspec "${app}"
+
     build_libexec
     build_etcdir
 
@@ -684,7 +686,7 @@ service()
     local gid
     gid=`id -g` || exit ${EX_SOFTWARE}
 
-    local userdir="${USERSDIR}/${uid}/${app}"
+    local userdir="${USERSDIR}/${uid}/${APPNAME}.${PROFILE}"
 
     if [ ! -d "${userdir}" ]; then
         err "${userdir}: not such directory."
@@ -716,7 +718,7 @@ service()
     local x11appjail_services="${userdir}/.x11appjail-services"
     local x11appjail_servicedir="${x11appjail_services}/${service}"
 
-    cat << EOF | doas "${LIBEXEC}/map-exec" "run-cmd" "${app}" /bin/sh -s || exit ${EX_SOFTWARE}
+    cat << EOF | doas "${LIBEXEC}/map-exec" "run-cmd" "${APPNAME}:${PROFILE}" /bin/sh -s || exit ${EX_SOFTWARE}
 set -e
 
 install -d -m 770 "\${HOME}/.x11appjail-services/${service}"
@@ -747,11 +749,11 @@ EOF
     UNIXEXEC_TMPDIR=
 
     if [ -x "${setup}" ]; then
-        cat -- "${setup}" | doas "${LIBEXEC}/map-exec" "run-cmd" "${app}" /bin/sh -s || exit ${EX_SOFTWARE}
+        cat -- "${setup}" | doas "${LIBEXEC}/map-exec" "run-cmd" "${APPNAME}:${PROFILE}" /bin/sh -s || exit ${EX_SOFTWARE}
     fi
 
     while :; do
-        run_cmd unixexec -D "${x11appjail_servicedir}" "sock" "${exec}" "${app}" "$@"
+        run_cmd unixexec -D "${x11appjail_servicedir}" "sock" "${exec}" "${APPNAME}:${PROFILE}" "$@"
     done
 }
 
