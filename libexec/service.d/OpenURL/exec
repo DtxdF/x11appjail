@@ -1,0 +1,92 @@
+#!/bin/sh
+
+set -o pipefail
+
+load_common()
+{
+    local _s
+    _s=`which x11appjail` || exit ${EX_SOFTWARE}
+    _s=`dirname -- "${_s}"` || exit ${EX_SOFTWARE}
+    _s="${_s}/../lib/x11appjail"
+
+    LIBDIR="${_s}"
+
+    . "${LIBDIR}/common"
+}
+
+escape_url()
+{
+    printf '%s' "$1" | od -v -An -t u1 | awk '
+{
+    for (i = 1; i <= NF; i++) {
+        if ($i >= 32 && $i <= 126 && $i != 34) {
+            printf("%c", $i)
+        } else {
+            printf("%%%02X", $i)
+        }
+    }
+}'
+}
+
+display_url()
+{
+    printf "%s" "$1" | LANG=en_US.UTF-8 zenity --text-info \
+        --no-markup \
+        --editable \
+        --width=420 \
+        --title="[${APPNAME}:${PROFILE}] Do you want to open this URL?" \
+        --ok-label="Yes" \
+        --cancel-label="No"
+}
+
+load_common
+
+build_appspec "$1"
+
+shift
+
+while getopts ":a:" _OPT; do
+    case "${_OPT}" in
+        a)
+            ALLOWED_URLS="${OPTARG}"
+            ;;
+        *)
+            usage
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+read URL
+
+case "${URL}" in
+    # Avoid using xdg-open(1) parameters like --help, --manual or --version.
+    -*) exit 0 ;;
+esac
+
+open_url=false
+
+for ALLOW in ${ALLOWED_URLS}; do
+    if printf "%s" "${URL}" | grep -qEe "${ALLOW}"; then
+        open_url=true
+        break
+    fi
+done
+
+if ! ${open_url}; then
+    DISPLAY_URL=`escape_url "${URL}"` || exit 1
+    URL=`display_url "${URL}"`
+
+    if [ $? -eq 0 ]; then
+        open_url=true
+    else
+        open_url=false
+    fi
+fi
+
+if ${open_url}; then
+    exec xdg-open "${URL}"
+fi
+
+exit 0

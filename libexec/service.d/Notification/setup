@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -e -o pipefail
+
+if [ ! -d "${HOME}/.config/dunst" ]; then
+    mkdir -p -- "${HOME}/.config/dunst"
+fi
+
+if [ ! -d "${HOME}/.config/dunst/dunstrc.d" ]; then
+    mkdir -p -- "${HOME}/.config/dunst/dunstrc.d"
+fi
+
+if [ ! -f "${HOME}/.config/dunst/dunstrc" ]; then
+    touch -- "${HOME}/.config/dunst/dunstrc"
+fi
+
+cat << EOF > "${HOME}/.config/dunst/dunstrc.d/00-x11appjail.conf"
+[x11appjail]
+summary = "*"
+script = ${HOME}/.x11appjail-services/Notification/agent
+skip_display = true
+history_ignore = yes
+EOF
+
+exit 0

@@ -1,0 +1,884 @@
+#!/bin/sh
+
+set -o pipefail
+
+ME=`readlink -f -- "$0"` || exit 1
+SELF=`dirname -- "${ME}"` || exit 1
+ME=`basename -- "${ME}"` || exit 1
+APPNAME=
+DATADIR="/var/x11appjail"
+APPSDIR="${DATADIR}/apps"
+USERSDIR="${DATADIR}/users"
+LOCKSDIR="${TMPDIR:-/tmp}/.x11appjail-locks"
+X11APPJAILDIR="${SELF}/x11appjail"
+export X11APPJAIL_IMAGE="${X11APPJAILDIR}/image"
+export X11APPJAIL_BASEDIR="${SELF}"
+export X11APPJAIL_WORKDIR="${X11APPJAILDIR}"
+UID=
+GID=
+USER_HOMEDIR=
+USER_INFO=
+export XAUTHORITY=
+XAUTHORITY_TMPDIR=
+USER_XAUTHORITY=
+HOST_DISPLAY=":0"
+VERSION="#VERSION#"
+
+main()
+{
+    local opt_install=false
+    local opt_uninstall=false
+    local opt_cache=false
+
+    load_common
+
+    if ! iam_root; then
+        main_user "$@"
+        exit $?
+    fi
+
+    atexit_init
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --help) help; exit 0 ;;
+            --version) version; exit 0 ;;
+            --install) opt_install=true ;;
+            --uninstall) opt_uninstall=true ;;
+            --cache) opt_cache=true ;;
+            --profile)
+                if [ "$2" = "" ]; then
+                    usage
+                    exit 1
+                fi
+
+                X11APPJAIL_PROFILE="$2"
+
+                shift
+                ;;
+            --uid)
+                if [ "$2" = "" ]; then
+                    usage
+                    exit 1
+                fi
+
+                UID="$2"
+
+                get_user_info "${UID}"
+
+                local user_xauthority="${USER_HOMEDIR}/.Xauthority"
+
+                # This is simply an optimization to verify that the file
+                # is indeed a file and not something else (in this case,
+                # a malicious symlink). See what follows this check.
+                if [ -f "${user_xauthority}" ] && [ ! -L "${user_xauthority}" ]; then
+                    XAUTHORITY_TMPDIR=`mktemp -d -t x11appjail` || exit 1
+
+                    local xauthority="${XAUTHORITY_TMPDIR}/.Xauthority"
+
+                    cp -P -- "${user_xauthority}" "${xauthority}" || exit 1
+
+                    #
+                    # But to combat the TOCTOU, we need to verify again
+                    # that the file is indeed a regular file.
+                    #
+                    xauthority=`find -- "${xauthority}" -type f -print` || exit 1
+
+                    if [ -n "${xauthority}" ]; then
+                        XAUTHORITY="${xauthority}"
+                        USER_XAUTHORITY="${user_xauthority}"
+                    else
+                        rm -rf -- "${XAUTHORITY_TMPDIR}"
+                    fi
+                fi
+
+                if [ -z "${XAUTHORITY}" ]; then
+                    warn "${user_xauthority}: no .Xauthority found."
+
+                    #
+                    # Using an empty file is fine, but Xephyr(1) will
+                    # refuse to connect, so it's not quite that fine.
+                    #
+                    XAUTHORITY=`mktemp -t x11appjail` || exit 1
+                fi
+
+                export X11APPJAIL_UID="${UID}"
+                
+                shift
+                ;;
+            --gid)
+                if [ "$2" = "" ]; then
+                    usage
+                    exit 1
+                fi
+
+                GID="$2"
+                GID=`id -g -- "${GID}"` || exit 1
+
+                export X11APPJAIL_GID="${GID}"
+
+                shift
+                ;;
+            --display)
+                if [ "$2" = "" ]; then
+                    usage
+                    exit 1
+                fi
+
+                HOST_DISPLAY="$2"
+
+                if ! check_display "${HOST_DISPLAY}"; then
+                    err "Invalid DISPLAY: ${HOST_DISPLAY}"
+                    exit 1
+                fi
+
+                shift
+                ;;
+            --) shift; break ;;
+            *)
+                err "'$1' is invalid. Use '--help' to see a list of all available options."
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
+    local v n=0
+
+    # Mutually exclusive.
+    for v in ${opt_install} ${opt_uninstall} ${opt_cache}; do
+        if ${v}; then
+            n=$((n+1))
+        fi
+
+        if [ ${n} -gt 1 ]; then
+            usage
+            exit 1
+        fi
+    done
+
+    export X11APPJAIL_PROFILE="${X11APPJAIL_PROFILE:-default}"
+
+    if ! check_humanname "${X11APPJAIL_PROFILE}"; then
+        err "Invalid profile name: ${X11APPJAIL_PROFILE}"
+        exit 1
+    fi
+
+    # Dependencies could be self-contained.
+    self_contained
+    # In the optimized variant, pkg(8) may be started here, so it's
+    # not a good idea to start twice when ${opt_cache} is enabled.
+    if ! ${opt_cache}; then
+        install_dependencies
+    fi
+
+    if ! ${opt_cache} && [ -n "${APPSCRIPT_SCRIPT}" ] && [ -z "${NOCACHE}" ]; then
+        start_cache
+    fi
+
+    if ${opt_install}; then
+        create_lockdir
+
+        local lockdir="${LOCKSDIR}/${APPNAME}.${X11APPJAIL_PROFILE}"
+
+        create_file "${lockdir}/global"
+
+        (lockf 9 || exit 1; x11appjail_install) 9> "${lockdir}/global" || exit 1
+    elif ${opt_uninstall}; then
+        create_lockdir
+
+        local lockdir="${LOCKSDIR}/${APPNAME}.${X11APPJAIL_PROFILE}"
+
+        create_file "${lockdir}/global"
+
+        (lockf 9 || exit 1; x11appjail_uninstall) 9> "${lockdir}/global" || exit 1
+    elif ${opt_cache}; then
+        start_cache_ttl
+    else
+        if [ -z "${UID}" ] || [ -z "${GID}" ]; then
+            usage
+            exit 1
+        fi
+
+        create_lockdir
+
+        local lockdir="${LOCKSDIR}/${APPNAME}.${X11APPJAIL_PROFILE}"
+
+        if [ -f "${lockdir}/global" ] && \
+                ! lockf -ks -t 0 -- "${lockdir}/global" true; then
+            err "Another process is holding the global lock (${lockdir}/global)."
+            exit 1
+        fi
+
+        x11appjail_run "$@"
+    fi
+}
+
+main_user()
+{
+    local opt_install=false
+    local opt_uninstall=false
+    local opt_cache=false
+
+    local uid
+    uid=`id -u` || exit 1
+    get_user_info "${uid}"
+
+    local datadir="${USER_HOMEDIR}/.x11appjail"
+    local locksdir="${datadir}/locks"
+    local lockdir
+    local appsdir="${datadir}/apps"
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --help) help; exit 0 ;;
+            --version) version; exit 0 ;;
+            --install) opt_install=true ;;
+            --uninstall) opt_uninstall=true ;;
+            --cache) opt_cache=true ;;
+            --) shift; break ;;
+            *)
+                err "'$1' is invalid. Use '--help' to see a list of all available options."
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
+    local v n=0
+
+    # Mutually exclusive.
+    for v in ${opt_install} ${opt_uninstall} ${opt_cache}; do
+        if ${v}; then
+            n=$((n+1))
+        fi
+
+        if [ ${n} -gt 1 ]; then
+            usage
+            exit 1
+        fi
+    done
+
+    # Users cannot use a profile other than the default one, but scripts
+    # can use this environment variable.
+    export X11APPJAIL_PROFILE="default"
+
+    if ! ${opt_cache} && [ -n "${APPSCRIPT_SCRIPT}" ] && [ -z "${NOCACHE}" ]; then
+        start_cache
+    fi
+
+    build_appname
+
+    if [ ${n} -gt 0 ]; then
+        if [ ! -d "${locksdir}" ]; then
+            mkdir -p -- "${locksdir}" || exit 1
+        fi
+
+        if [ ! -d "${appsdir}" ]; then
+            mkdir -p -- "${appsdir}" || exit 1
+        fi
+
+        lockdir="${locksdir}/${APPNAME}"
+
+        if [ ! -d "${lockdir}" ]; then
+            mkdir -p -- "${lockdir}" || exit 1
+        fi
+    fi
+
+    build_libexec
+
+    if ${opt_install}; then
+        (lockf 9 || exit 1; x11appjail_install_user) 9> "${lockdir}/global"
+    elif ${opt_uninstall}; then
+        (lockf 9 || exit 1; x11appjail_uninstall_user) 9> "${lockdir}/global"
+    elif ${opt_cache}; then
+        start_cache_ttl
+    else
+        exec doas "${LIBEXEC}/map-exec" "veriexec" "${DISPLAY:-:0}" "${APPSCRIPT_SCRIPT}" "$@"
+    fi
+}
+
+x11appjail_install_user()
+{
+    local datadir="${USER_HOMEDIR}/.x11appjail"
+    local appsdir="${datadir}/apps"
+
+    build_appname
+
+    if ! cp -a -- "${APPSCRIPT_SCRIPT}" "${appsdir}/${APPNAME}.AppJail"; then
+        err "${APPNAME}: error while installing this application."
+        exit 1
+    fi
+
+    chmod +x "${appsdir}/${APPNAME}.AppJail" || exit 1
+
+    export X11APPJAIL_APPNAME="${APPNAME}"
+    export X11APPJAIL_PREFIX="${USER_HOMEDIR}/.local"
+
+    if [ -x "${X11APPJAILDIR}/install" ]; then
+        if ! "${X11APPJAILDIR}/install"; then
+            err "An error occurred while executing 'install' script."
+            exit 1
+        fi
+    fi
+}
+
+x11appjail_uninstall_user()
+{
+    build_appname
+    build_libexec
+
+    local datadir="${USER_HOMEDIR}/.x11appjail"
+    local appsdir="${datadir}/apps"
+    local appfile="${appsdir}/${APPNAME}.AppJail"
+
+    if [ ! -f "${appfile}" ]; then
+        err "Cannot uninstall non-existent application: ${APPNAME}"
+        exit 1
+    fi
+
+    doas "${LIBEXEC}/map-exec" "destroy-jail" "${APPNAME}:${X11APPJAIL_PROFILE}"
+
+    export X11APPJAIL_APPNAME="${APPNAME}"
+    export X11APPJAIL_PREFIX="${USER_HOMEDIR}/.local"
+
+    if [ -x "${X11APPJAILDIR}/uninstall" ]; then
+        if ! "${X11APPJAILDIR}/uninstall"; then
+            err "An error occurred while executing 'uninstall' script."
+            exit 1
+        fi
+    fi
+
+    if ! rm -f -- "${appfile}"; then
+        err "${appfile}: error while removing application."
+        exit 1
+    fi
+}
+
+start_cache_ttl()
+{
+    local timestamp=0
+    local timestamp_file=
+
+    if [ -n "${APPSCRIPT_SCRIPT_CHECKSUM}" ]; then
+        local rundir
+
+        if iam_root; then
+            rundir="/var/run/x11appjail-cache"
+        else
+            local datadir="${USER_HOMEDIR}/.x11appjail"
+            rundir="${datadir}/run"
+        fi
+
+        timestamp_file="${rundir}/${APPSCRIPT_SCRIPT_CHECKSUM}.timestamp"
+    fi
+
+    while :; do
+        local ttl
+        ttl=`sysrc -ni x11appjail_cache_ttl`
+        ttl="${tll:-30m}"
+
+        sleep -- "${ttl}" || exit 1
+
+        if [ -z "${timestamp_file}" ]; then
+            break
+        fi
+
+        if [ ! -f "${timestamp_file}" ]; then
+            break
+        fi
+
+        local current_timestamp
+        current_timestamp=`stat -f "%Fm" -- "${timestamp_file}" 2> /dev/null`
+
+        if [ -z "${current_timestamp}" ]; then
+            break
+        fi
+
+        if [ "${timestamp}" = "${current_timestamp}" ]; then
+            break
+        fi
+
+        timestamp="${current_timestamp}"
+    done
+
+    if [ -n "${timestamp_file}" ] && [ -f "${timestamp_file}" ]; then
+        rm -f -- "${timestamp_file}"
+    fi
+}
+
+start_cache()
+{
+    local uniqid
+    if [ -n "${APPSCRIPT_SCRIPT_CHECKSUM}" ]; then
+        uniqid="${APPSCRIPT_SCRIPT_CHECKSUM}"
+    else
+        if [ -n "${APPSCRIPT_SCRIPT}" ]; then
+            local abs_hash
+            abs_hash=`build_timestamp "${APPSCRIPT_SCRIPT}" | sha256 -q` || exit 1
+
+            local abs_cachedir
+            abs_cachedir="/tmp/.x11appjail-apps/${abs_hash}"
+
+            local checksum_file
+            checksum_file="${abs_cachedir}/checksum"
+
+            if [ -f "${checksum_file}" ]; then
+                local owner
+                owner=`stat -f "%u:%g" -- "${checksum_file}"` || exit 1
+
+                if [ "${owner}" = "0:0" ]; then
+                    uniqid=`head -1 -- "${checksum_file}" 2> /dev/null`
+                fi
+            fi
+        fi
+
+        if [ -z "${uniqid}" ]; then
+            uniqid=`sha256 -q -- "${APPSCRIPT_SCRIPT:-/dev/null}"` || exit 1
+        fi
+
+        export APPSCRIPT_SCRIPT_CHECKSUM="${uniqid}"
+    fi
+
+    local rundir
+
+    if iam_root; then
+        rundir="/var/run/x11appjail-cache"
+        
+        create_directory "${rundir}"
+    else
+        local datadir="${USER_HOMEDIR}/.x11appjail"
+        rundir="${datadir}/run"
+
+        mkdir -p -- "${rundir}" || exit 1
+    fi
+
+    local timestamp="${rundir}/${uniqid}.timestamp"
+    local pidfile="${rundir}/${uniqid}.pid"
+
+    touch -- "${timestamp}" || exit 1
+
+    export NOCACHE=1
+
+    daemon -f -p "${pidfile}" -- "${APPSCRIPT_SCRIPT}" --cache > /dev/null 2>&1
+}
+
+get_user_info()
+{
+
+    USER_INFO=`pw usershow -u "$1"` || exit 1
+    USER_HOMEDIR=`printf "%s" "${USER_INFO}" | cut -d: -f9` || exit 1
+
+    if [ ! -d "${USER_HOMEDIR}" ]; then
+        err "User '$1' does not have a valid home directory."
+        exit 1
+    fi
+
+    export X11APPJAIL_HOMEDIR="${USER_HOMEDIR}"
+}
+
+atexit_init()
+{
+	trap '' ${IGNORED_SIGNALS}
+    trap clean_exit ${HANDLED_SIGNALS}
+    trap "_ERRLEVEL=\$?; _clean_exit; exit \${_ERRLEVEL}" EXIT
+}
+
+clean_exit()
+{
+    trap '' ${HANDLED_SIGNALS}
+    _clean_exit
+	trap - ${IGNORED_SIGNALS} ${HANDLED_SIGNALS}
+
+    exit ${EX_SOFTWARE}
+}
+
+_clean_exit()
+{
+    remove_xauthority
+}
+
+remove_xauthority()
+{
+    if [ -n "${XAUTHORITY_TMPDIR}" ] && [ -d "${XAUTHORITY_TMPDIR}" ]; then
+        rm -rf -- "${XAUTHORITY_TMPDIR}"
+    fi
+
+    if [ -n "${XAUTHORITY}" ] && [ -f "${XAUTHORITY}" ]; then
+        rm -f -- "${XAUTHORITY}"
+    fi
+}
+
+x11appjail_run()
+{
+    local checksum
+    local errlevel
+
+    build_jailname
+    create_lockdir
+
+    local descr
+
+    if [ -f "${X11APPJAILDIR}/descr" ]; then
+        descr=`head -1 -- "${X11APPJAILDIR}/descr"` || exit 1
+    else
+        descr="${APPNAME}"
+    fi
+
+    export X11APPJAIL_TITLE="${X11APPJAIL_PROFILE}: ${X11APPJAIL_TITLE:-${descr}}"
+    if [ -x "${X11APPJAILDIR}/X" ]; then
+        X11APPJAIL_CLI_ONLY=0
+    else
+        X11APPJAIL_CLI_ONLY=1
+    fi
+    export X11APPJAIL_CLI_ONLY
+    export X11APPJAIL_APPNAME="${APPNAME}"
+    export X11APPJAIL_USERDIR="${USERSDIR}/${UID}/${APPNAME}.${X11APPJAIL_PROFILE}"
+
+    local lockdir="${LOCKSDIR}/${APPNAME}.${X11APPJAIL_PROFILE}"
+
+    create_file "${lockdir}/startup"
+
+    (
+        lockf 7 || exit 1
+
+        if [ -n "${APPSCRIPT_SCRIPT_CHECKSUM}" ]; then
+            checksum="${APPSCRIPT_SCRIPT_CHECKSUM}"
+        else
+            checksum=`sha256 -q -- "${APPSCRIPT_SCRIPT:-/dev/null}"` || exit 1
+        fi
+
+        while :; do
+            "${APPJAIL}" status -q -- "${X11APPJAIL_JAIL}" > /dev/null 2>&1
+
+            errlevel=$?
+
+            if [ ${errlevel} -gt 1 ]; then
+                "${X11APPJAILDIR}/create" 7>&- || exit 1
+
+                #
+                # In earlier versions, this was optional via X11APPJAIL_ALLOW_HOST,
+                # but in most cases, host users will want to manipulate the X server
+                # they have access to.
+                #
+                if [ "${X11APPJAIL_CLI_ONLY}" -eq 0 ] && [ -n "${USER_XAUTHORITY}" ]; then
+                    local x11_display
+                    x11_display=`"${APPJAIL}" x11 "${X11APPJAIL_JAIL}" assign_only` || exit 1
+
+                    local cookie
+                    cookie=`openssl rand -hex 16` || exit 1
+
+                    # user
+                    XAUTHORITY="${USER_XAUTHORITY}" su-exec ${UID}:${GID} \
+                        xauth add localhost:${x11_display} MIT-MAGIC-COOKIE-1 "${cookie}" || exit 1
+                    # us
+                    XAUTHORITY="${XAUTHORITY}" \
+                        xauth add localhost:${x11_display} MIT-MAGIC-COOKIE-1 "${cookie}" || exit 1
+                fi
+
+                "${APPJAIL}" label add "${X11APPJAIL_JAIL}" "x11appjail.checksum" "${checksum}" || exit 1
+
+                break
+            elif [ ${errlevel} -eq 1 ]; then
+                local _checksum
+                _checksum=`"${APPJAIL}" label get -l "x11appjail.checksum" -- "${X11APPJAIL_JAIL}" value 2> /dev/null`
+
+                if [ -z "${_checksum}" ] || [ "${checksum}" != "${_checksum}" ]; then
+                    "${APPJAIL}" jail destroy -Rf -- "${X11APPJAIL_JAIL}" > /dev/null 2>&1
+                    continue
+                fi
+
+                "${APPJAIL}" start -- "${X11APPJAIL_JAIL}" || exit 1
+
+                # If jail is ephemeral, it could be destroyed at this point.
+                "${APPJAIL}" status -q -- "${X11APPJAIL_JAIL}" > /dev/null 2>&1
+
+                if [ $? -gt 1 ]; then
+                    # Assuming the jail has been destroyed.
+                    continue
+                fi
+
+                break
+            else
+                local _checksum
+                _checksum=`"${APPJAIL}" label get -l "x11appjail.checksum" "${X11APPJAIL_JAIL}" value 2> /dev/null`
+
+                if [ -z "${_checksum}" ] || [ "${checksum}" != "${_checksum}" ]; then
+                    "${APPJAIL}" stop -- "${X11APPJAIL_JAIL}"
+                    "${APPJAIL}" jail destroy -Rf -- "${X11APPJAIL_JAIL}" > /dev/null 2>&1
+                    continue
+                fi
+            fi
+
+            break
+        done
+
+        if [ "${X11APPJAIL_CLI_ONLY}" -eq 0 ]; then
+            local xephyr_pid
+            xephyr_pid=`"${APPJAIL}" jail list -HI -j "${X11APPJAIL_JAIL}" xephyr_pid` || exit 1
+
+            if [ -z "${xephyr_pid}" ]; then
+                X11APPJAIL_HOST_DISPLAY="${HOST_DISPLAY}" \
+                    "${X11APPJAILDIR}/X" 7>&- &
+
+                sleep 1 || exit 1
+
+                N=0
+
+                while :; do
+                    XEPHYR_PID=`"${APPJAIL}" jail list -HI -j "${X11APPJAIL_JAIL}" xephyr_pid` || exit 1
+
+                    if [ -n "${XEPHYR_PID}" ]; then
+                        break
+                    fi
+
+                    sleep 1 || exit 1
+
+                    N=$((N+1))
+
+                    if [ ${N} -ge 30 ]; then
+                        err "X server cannot be started."
+                        exit 1
+                    fi
+                done
+            fi
+        fi
+    ) 7> "${lockdir}/startup" || exit 1
+    exec 7>&-
+
+    remove_xauthority
+
+    if [ "${X11APPJAIL_CLI_ONLY}" -eq 0 ]; then
+        local x11_display
+        x11_display=`"${APPJAIL}" jail list -HI -j "${X11APPJAIL_JAIL}" x11_display` || exit 1
+
+        export X11APPJAIL_DISPLAY=":${x11_display}"
+    fi
+
+    exec "${X11APPJAILDIR}/run" "$@"
+}
+
+x11appjail_install()
+{
+    if [ -z "${APPSCRIPT_SCRIPT}" ]; then
+        err "Not an AppScript."
+        exit 1
+    fi
+
+    local rootdir="${APPSDIR}/${APPNAME}.${X11APPJAIL_PROFILE}"
+    local done_file="${rootdir}/.done"
+    local appdir="${rootdir}/.appdir"
+
+    if [ -f "${done_file}" ]; then
+        err "Cannot install an existing application: ${APPNAME} (${X11APPJAIL_PROFILE})"
+        exit 1
+    fi
+
+    # See X11APPJAIL_PREFIX below.
+    build_prefix
+
+    if [ -d "${rootdir}" ]; then
+        if ! chflags -R noschg "${rootdir}"; then
+            err "${rootdir}: error while removing schg flag."
+            exit 1
+        fi
+
+        if ! rm -rf -- "${rootdir}"; then
+            err "${rootdir}: error while removing directory."
+            exit 1
+        fi
+    fi
+
+    create_appdir
+
+    if ! cp -a -- "${SELF}/" "${appdir}"; then
+        err "${APPNAME} (${X11APPJAIL_PROFILE}): error while installing this application."
+        exit 1
+    fi
+
+    local start_file="${rootdir}/START"
+
+    {
+    cat << "EOF"
+#!/bin/sh
+ME=`readlink -f -- "$0"` || exit 1
+SELF=`dirname -- "${ME}"` || exit 1
+EOF
+    export -p | grep -Ee '^export X11APPJAIL_[^=]*='
+    echo "export X11APPJAIL_APPNAME=\"${APPNAME}\""
+    # If a user has created the jail in portable mode and this environment
+    # variable is not defined, the jail will be recreated when the user
+    # runs the same AppJail after installation.
+    if [ -n "${APPSCRIPT_SCRIPT_CHECKSUM}" ]; then
+        echo "export APPSCRIPT_SCRIPT_CHECKSUM=\"${APPSCRIPT_SCRIPT_CHECKSUM}\""
+    fi
+    echo "exec \"\${SELF}/.appdir/APPSCRIPT\" \"\$@\""
+    } > "${start_file}" || exit 1
+
+    chmod +x "${start_file}" || exit 1
+
+    export X11APPJAIL_APPNAME="${APPNAME}"
+    export X11APPJAIL_PREFIX="${LOCAL_PREFIX}"
+
+    if [ -x "${X11APPJAILDIR}/install" ]; then
+        if ! "${X11APPJAILDIR}/install"; then
+            err "An error occurred while executing 'install' script."
+            exit 1
+        fi
+    fi
+
+    touch -- "${done_file}" || exit 1
+}
+
+x11appjail_uninstall()
+{
+    build_appname
+    build_libexec
+    # See X11APPJAIL_PREFIX below.
+    build_prefix
+
+    local appdir="${APPSDIR}/${APPNAME}.${X11APPJAIL_PROFILE}"
+
+    if [ ! -d "${appdir}" ]; then
+        err "Cannot uninstall non-existent application: ${APPNAME} (${X11APPJAIL_PROFILE})"
+        exit 1
+    fi
+
+    x11appjail_destroy_jail
+
+    export X11APPJAIL_APPNAME="${APPNAME}"
+    export X11APPJAIL_PREFIX="${LOCAL_PREFIX}"
+
+    if [ -x "${X11APPJAILDIR}/uninstall" ]; then
+        if ! "${X11APPJAILDIR}/uninstall"; then
+            err "An error occurred while executing 'uninstall' script."
+            exit 1
+        fi
+    fi
+
+    if ! chflags -R noschg "${appdir}"; then
+        err "${appdir}: error while removing schg flag."
+        exit 1
+    fi
+
+    if ! rm -rf -- "${appdir}"; then
+        err "${appdir}: error while removing directory."
+        exit 1
+    fi
+}
+
+x11appjail_destroy_jail()
+{
+    local jail
+
+    for jail in `"${APPJAIL}" jail list -H name`; do
+        case "${jail}" in
+            x11appjail-${APPNAME}-*_${X11APPJAIL_PROFILE}) ;;
+            *) continue ;;
+        esac
+
+        if "${APPJAIL}" status -q -- "${jail}" > /dev/null 2>&1; then
+            "${APPJAIL}" stop -- "${jail}"
+        fi
+
+        "${APPJAIL}" jail destroy -Rf -- "${jail}" > /dev/null 2>&1
+    done
+}
+
+create_appdir()
+{
+    local appdir
+
+    create_appsdir
+    build_appname
+
+    appdir="${APPSDIR}/${APPNAME}.${X11APPJAIL_PROFILE}"
+
+    create_directory "${appdir}"
+    create_directory "${appdir}/.appdir"
+}
+
+create_appsdir()
+{
+    create_datadir
+    create_directory "${APPSDIR}"
+}
+
+create_datadir()
+{
+    create_directory "${DATADIR}"
+}
+
+create_lockdir()
+{
+    local lockdir
+
+    create_locksdir
+    build_appname
+
+    lockdir="${LOCKSDIR}/${APPNAME}.${X11APPJAIL_PROFILE}"
+
+    create_directory "${lockdir}"
+}
+
+create_locksdir()
+{
+    create_directory "${LOCKSDIR}"
+}
+
+build_jailname()
+{
+    build_appname
+
+    export X11APPJAIL_JAIL="x11appjail-${APPNAME}-${UID}_${X11APPJAIL_PROFILE}"
+}
+
+load_common()
+{
+    local _s
+    _s=`which x11appjail` || exit ${EX_SOFTWARE}
+    _s=`dirname -- "${_s}"` || exit ${EX_SOFTWARE}
+    _s="${_s}/../lib/x11appjail"
+
+    LIBDIR="${_s}"
+
+    . "${LIBDIR}/common"
+}
+
+usage()
+{
+    echo "usage: ${APPSCRIPT_SCRIPT:-${ME}} [options]" >&2
+}
+
+version()
+{
+    echo "${VERSION}"
+}
+
+help()
+{
+    {
+        usage >&1
+        echo
+        cat << EOF
+AppJail options:
+  --help                     Show this help message and exit.
+  --version                  Show the version and exit.
+  --install                  Install the AppJail.
+  --uninstall                Uninstall the AppJail.
+  --cache                    Used by the caching system.
+  --profile <profile>        (root only). Profile name.
+  --uid <uid>                (root only). UID to be used.
+  --gid <gid>                (root only). GID to be used.
+  --display <display>        (root only). Host's DISPLAY environment variable.
+
+Notes:
+  - Unless --install, --uninstall, or --cache is used, the application
+    will run inside the jail.
+  - Use \`--\` to indicate the end of the arguments if the first argument
+    is not a positional argument.
+EOF
+    } | cat >&2
+}
+
+main "$@"

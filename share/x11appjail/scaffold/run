@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# run
+#
+# The sole responsibility of this script is to execute the application.
+#
+# *WARNING*: although we are using the X11APPJAIL_APPNAME environment
+# variable below, we should not do so, as its value could be changed
+# to something other than the binary to be executed. A hardcoded value
+# should be used; we employ it here solely to simplify the example.
+#
+
+#
+# We use the jexec(8) variant of AppJail because it supports the -e parameter. 
+#
+JEXEC="${X11APPJAIL_BASEDIR}/usr/local/libexec/appjail/jexec/jexec"
+
+#
+# In the event that script X has not been included in the .AppJail file,
+# we could use this environment variable to determine whether to set the
+# DISPLAY environment variable, or others that the application might require.
+#
+if [ ${X11APPJAIL_CLI_ONLY} -eq 1 ]; then
+    exec "${JEXEC}" -l \
+        -U noroot \
+        "${X11APPJAIL_JAIL}" \
+        "${X11APPJAIL_APPNAME}" "$@"
+else
+    exec "${JEXEC}" -l \
+        -U noroot \
+        -e DISPLAY="${X11APPJAIL_DISPLAY}" \
+        "${X11APPJAIL_JAIL}" \
+        "${X11APPJAIL_APPNAME}" "$@"
+fi

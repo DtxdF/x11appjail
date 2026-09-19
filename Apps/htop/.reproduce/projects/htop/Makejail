@@ -1,0 +1,14 @@
+OPTION start
+OPTION overwrite=force
+OPTION alias
+OPTION ip4_inherit
+OPTION ip6_inherit
+OPTION type=thick
+OPTION fstab=/var/cache/dbuild/pkgcache0 /var/cache/pkg
+
+COPY usr
+
+PKG htop
+#PKG --clean
+#CMD rm -rf /var/cache/pkg/*
+CMD rm -rf /var/db/pkg/repos/*

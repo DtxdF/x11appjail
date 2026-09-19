@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# install
+#
+# This script is very useful for installing a .desktop file and the
+# application icon, or for performing some other action once the
+# application directory has been installed but before marking it as
+# completed.
+#
+# Keep in mind that this script could be invoked by the root user or
+# by a regular user.
+# Depending on who invokes .AppJail, you will need to modify the path
+# to the application icon and the .desktop file, adhering to the XDG
+# specification.
+#

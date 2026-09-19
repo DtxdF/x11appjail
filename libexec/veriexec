@@ -1,0 +1,172 @@
+#!/bin/sh
+#
+# Copyright (c) 2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+set -o pipefail
+
+test -n "${DOAS_USER}" || exit 1
+
+UID=`id -u "${DOAS_USER}"` || exit 1
+GID=`id -g "${DOAS_USER}"` || exit 1
+CACHEDIR="${TMPDIR:-/tmp}/.x11appjail-apps"
+DATADIR="/var/x11appjail"
+KEYSDIR="${DATADIR}/keys"
+
+load_common()
+{
+    local _s
+    _s=`which x11appjail` || exit ${EX_SOFTWARE}
+    _s=`dirname -- "${_s}"` || exit ${EX_SOFTWARE}
+    _s="${_s}/../lib/x11appjail"
+
+    LIBDIR="${_s}"
+
+    . "${LIBDIR}/common"
+}
+
+load_common
+
+DISPLAY="$1"
+
+test -n "${DISPLAY}" || exit 1
+
+if ! check_display "${DISPLAY}"; then
+    err "Invalid DISPLAY: ${DISPLAY}"
+    exit 1
+fi
+
+shift
+
+APPSCRIPT_SCRIPT="$1"
+
+test -n "${APPSCRIPT_SCRIPT}" || exit 1
+
+shift
+
+if [ ! -x "${APPSCRIPT_SCRIPT}" ]; then
+    err "${APPSCRIPT_SCRIPT}: not an executable."
+    exit 1
+fi
+
+build_appname
+
+ABS=`realpath -- "${APPSCRIPT_SCRIPT}"` || exit 1
+ABS_HASH=`build_timestamp "${APPSCRIPT_SCRIPT}" | sha256 -q` || exit 1
+ABS_CACHEDIR="${CACHEDIR}/${ABS_HASH}"
+CHECKSUM_FILE="${ABS_CACHEDIR}/checksum"
+VENDORID_FILE="${ABS_CACHEDIR}/vendorid"
+
+create_directory "${ABS_CACHEDIR}"
+
+if [ -f "${VENDORID_FILE}" ]; then
+    VENDORID=`head -1 -- "${VENDORID_FILE}" 2> /dev/null`
+fi
+
+if [ -z "${VENDORID}" ]; then
+    VENDORID=`appscript-verify -P -- "${APPSCRIPT_SCRIPT}"` || exit 1
+
+    create_file "${VENDORID_FILE}.lock"
+
+    (
+        lockf 9 || exit 1
+
+        printf "%s" "${VENDORID}" > "${VENDORID_FILE}" || exit 1
+    ) 9> "${VENDORID_FILE}.lock" || exit 1
+    exec 9>&-
+fi
+
+test -n "${VENDORID}" || exit 1
+
+VENDOR_PUBKEY=
+
+if [ -d "${KEYSDIR}" ] && ! check_emptydir "${KEYSDIR}"; then
+    VENDORID_HASH=`printf "%s" "${VENDORID}" | sha256 -q` || exit 1
+
+    if [ -f "${KEYSDIR}/${VENDORID_HASH}.pub" ]; then
+        VENDOR_PUBKEY="${KEYSDIR}/${VENDORID_HASH}.pub"
+    fi
+fi
+
+if [ -z "${VENDOR_PUBKEY}" ]; then
+    printf "%s\n" "${APPSCRIPT_SCRIPT}: Permission denied." >&2
+    exit 1
+fi
+
+if [ -f "${CHECKSUM_FILE}" ]; then
+    CHECKSUM=`head -1 -- "${CHECKSUM_FILE}" 2> /dev/null`
+fi
+
+if [ -z "${CHECKSUM}" ]; then
+    CHECKSUM=`sha256 -q -- "${APPSCRIPT_SCRIPT}"` || exit 1
+
+    create_file "${CHECKSUM_FILE}.lock"
+
+    (
+        lockf 9 || exit 1
+
+        printf "%s" "${CHECKSUM}" > "${CHECKSUM_FILE}" || exit 1
+    ) 9> "${CHECKSUM_FILE}.lock" || exit 1
+    exec 9>&-
+fi
+
+# Used by APPSCRIPT:x11appjail_run().
+export APPSCRIPT_SCRIPT_CHECKSUM="${CHECKSUM}"
+
+CACHEDIR="${CACHEDIR}/${CHECKSUM}"
+
+create_directory "${CACHEDIR}"
+
+EXECUTABLE="${CACHEDIR}/${APPNAME}"
+
+if [ ! -x "${EXECUTABLE}" ]; then
+    cp -P -- "${APPSCRIPT_SCRIPT}" "${EXECUTABLE}" || exit 1
+fi
+
+EXECUTABLE=`find -- "${EXECUTABLE}" -type f -print -executable` || exit 1
+
+if [ -z "${EXECUTABLE}" ]; then
+    err "${APPSCRIPT_SCRIPT}: not an executable."
+    exit 1
+fi
+
+VERIFIED="${CACHEDIR}/verified"
+
+if [ ! -f "${VERIFIED}" ] && \
+        ! appscript-verify -p "${VENDOR_PUBKEY}" -- "${EXECUTABLE}" > /dev/null 2>&1; then
+    printf "%s\n" "${APPSCRIPT_SCRIPT}: Permission denied." >&2
+    exit 1
+fi
+
+if [ ! -f "${VERIFIED}" ]; then
+    touch -- "${VERIFIED}" || exit 1
+fi
+
+export X11APPJAIL_EPHEMERAL=1
+
+exec "${EXECUTABLE}" --display "${DISPLAY}" --uid "${UID}" --gid "${GID}" -- "$@"

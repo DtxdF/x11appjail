@@ -1,0 +1,9 @@
+#!/bin/sh
+
+JEXEC="${X11APPJAIL_BASEDIR}/usr/local/libexec/appjail/jexec/jexec"
+
+exec "${JEXEC}" -l \
+    -U noroot \
+    -e DISPLAY="${X11APPJAIL_DISPLAY}" \
+    "${X11APPJAIL_JAIL}" \
+    firefox "$@"

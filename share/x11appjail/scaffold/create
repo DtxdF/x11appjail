@@ -1,0 +1,126 @@
+#!/bin/sh
+#
+# create
+#
+# This script is executed when the AppScript detects that the jail has
+# not been created or needs to be recreated.
+#
+
+set -e -o pipefail
+
+#
+# X11APPJAIL_* environment variables are preserved when installing the
+# AppJail, but only for the root user. If doas.conf(5) has been correctly
+# configured as specified in the "UNPRIVILEGED USERS" section of x11appjail(1),
+# X11APPJAIL_* environment variables defined by unprivileged users will be
+# ignored, as the environment is not inherited when switching to the root user.
+# This poses a problem when running an AppJail in portable mode; consequently,
+# sysrc(8) can be used as follows.
+#
+if [ -z "${X11APPJAIL_NETWORK_MODE}" ]; then
+    X11APPJAIL_NETWORK_MODE=`sysrc -ni x11appjail_network_mode || :`
+fi
+
+NETWORK_MODE="${X11APPJAIL_NETWORK_MODE:-none}"
+
+set --
+set -- "$@" -j "${X11APPJAIL_JAIL}"
+set -- "$@" -f "${X11APPJAIL_WORKDIR}/Makejail"
+
+# Below, you can see three network modes. AppJail supports many more,
+# but for use on desktop usage, these three offer a balance between
+# ease of use and finer-grained (though only 'virtualnet' achieves the
+# latter).
+#
+# - none       -- disables the network stack, which essentially means no
+#                 network connectivity.
+# - inherit    -- does not isolate the network, so it's like running your
+#                 application on the host.
+# - virtualnet -- depends on your configuration, but it's the most
+#                 recommended way to use AppJail.
+#
+# 'virtualnet' requires AppJail to be installed on the host, since AppJail
+# needs to calculate a free IPv4 address; therefore, all jails managed by
+# AppJail must use the same pool.
+#
+if [ "${NETWORK_MODE}" = "inherit" ]; then
+    set -- "$@" -o alias -o ip4_inherit -o ip6_inherit
+elif [ "${NETWORK_MODE}" = "virtualnet" ]; then
+    if [ "${APPJAIL_SELF_CONTAINED}" != 0 ]; then
+        echo "ERROR: Virtual Networks requires AppJail to be installed on the host."
+    fi
+
+    set -- "$@" -o virtualnet="${X11APPJAIL_VIRTUALNET}:<random> default" -o nat
+else
+    if [ "${NETWORK_MODE}" != "none" ]; then
+        echo "WARNING: invalid network mode '${NETWORK_MODE}', falling back to 'none'" >&2
+    fi
+    set -- "$@" -o alias -o ip4_disable -o ip6_disable
+fi
+
+#
+# It is simply a practical way to add the jail being created to a table
+# intended to be managed via Security Group hooks.
+#
+# If you installed AppJail using AppJail.setup, this is particularly
+# useful for adding the jail to the `allow-dns` table, thereby allowing
+# DNS queries.
+#
+if [ "${NETWORK_MODE}" = "virtualnet" ]; then
+    SECGRP_TABLE=`sysrc -ni x11appjail_secgrp_table || :`
+
+    if [ -n "${SECGRP_TABLE}" ]; then
+        set -- "$@" -o label="security-group:1"
+        set -- "$@" -o label="security-group.tables.${SECGRP_TABLE}:${SECGRP_TABLE}"
+    fi
+fi
+
+#
+# Executing an .AppJail in portable mode (simply by running the binary)
+# will always set this environment variable.
+#
+if [ -n "${X11APPJAIL_EPHEMERAL}" ]; then
+    set -- "$@" -o ephemeral
+fi
+
+#
+# Labels are very useful in combination with AppJail hooks, especially
+# those for Security Groups. Of course, Security Group hooks only make
+# sense when `NETWORK_MODE` is set to `virtualnet` and `pf.conf(5)`
+# has been configured.
+#
+# See also:
+#   - https://github.com/DtxdF/AppJail/wiki/filter
+#   - https://appjail.readthedocs.io/en/latest/getting-started/#virtual-networks
+#
+if [ -n "${X11APPJAIL_LABEL0}" ]; then
+    labels=`mktemp -d -t x11appjail`
+    index=0
+
+    env | grep -Ee '^X11APPJAIL_LABEL[0-9]+=.*$' | while IFS= read -r env; do
+        value=`printf "%s" "${env}" | cut -d= -f2-`
+
+        printf "%s\n" "${value}" > "${labels}/${index}"
+
+        index=$((index+1))
+    done
+
+    for label_file in "${labels}"/*; do
+        label=`head -1 -- "${label_file}"`
+
+        set -- "$@" -o label="${label}"
+    done
+
+    rm -rf -- "${labels}"
+    unset labels index label_file label
+fi
+
+#
+# The user directory is not created by APPSCRIPT; that is your responsibility.
+# The reason is that it may not be necessary for certain applications.
+#
+mkdir -p -m 0755 -- "${X11APPJAIL_USERDIR}"
+set -- "$@" -o fstab="${X11APPJAIL_USERDIR} data <volumefs>"
+
+exec "${APPJAIL}" makejail "$@" -- \
+    --puid "${X11APPJAIL_UID}" --pgid "${X11APPJAIL_GID}"

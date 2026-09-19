@@ -1,0 +1,349 @@
+#!/bin/sh
+#
+# Copyright (c) 2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# See sysexits(3)
+EX_OK=0
+EX_USAGE=64
+EX_DATAERR=65
+EX_NOINPUT=66
+EX_NOUSER=67
+EX_NOHOST=68
+EX_UNAVAILABLE=69
+EX_SOFTWARE=70
+EX_OSERR=71
+EX_OSFILE=72
+EX_CANTCREAT=73
+EX_IOERR=74
+EX_TEMPFAIL=75
+EX_PROTOCOL=76
+EX_NOPERM=77
+EX_CONFIG=78
+
+# Signals
+IGNORED_SIGNALS="SIGALRM SIGVTALRM SIGPROF SIGUSR1 SIGUSR2"
+HANDLED_SIGNALS="SIGTERM SIGQUIT SIGINT SIGHUP"
+
+# See run_cmd()
+LAST_PID=
+
+# See x11appjail.sh:build() and install_dependencies()
+PACKAGES="su-exec-static xauth xdotool xlibre-ephyr xseticon xev git-tiny"
+DEPENDENCIES="su-exec xauth xdotool Xephyr xseticon xev git"
+
+# See self_contained()
+APPJAIL=
+export APPJAIL_SELF_CONTAINED=0
+
+install_dependencies()
+{
+    local missing=
+
+    local dependency
+    for dependency in ${DEPENDENCIES}; do
+        if which -s "${dependency}"; then
+            continue
+        fi
+
+        # Package name is different than binary name.
+        if [ "${dependency}" = "Xephyr" ]; then
+            dependency="xlibre-ephyr"
+        elif [ "${dependency}" = "git" ]; then
+            dependency="git-tiny"
+        elif [ "${dependency}" = "su-exec" ]; then
+            dependency="su-exec-static"
+        fi
+
+        missing="${missing} ${dependency}"
+    done
+
+    if [ -n "${missing}" ]; then
+        ASSUME_ALWAYS_YES=yes pkg install -- "${missing}" || exit 1
+    fi
+}
+
+iam_root()
+{
+    test `id -u` -eq 0
+}
+
+build_sharedir()
+{
+    local _s
+    _s=`which x11appjail` || exit ${EX_SOFTWARE}
+    _s=`dirname -- "${_s}"` || exit ${EX_SOFTWARE}
+    _s="${_s}/../share/x11appjail"
+    _s=`realpath -- "${_s}"` || exit ${EX_SOFTWARE}
+
+    SHAREDIR="${_s}"
+}
+
+build_prefix()
+{
+    local _s
+    _s=`which x11appjail` || exit ${EX_SOFTWARE}
+    _s=`dirname -- "${_s}"` || exit ${EX_SOFTWARE}
+    _s="${_s}/../"
+    _s=`realpath -- "${_s}"` || exit ${EX_SOFTWARE}
+
+    LOCAL_PREFIX="${_s}"
+}
+
+run_cmd()
+{
+    local errlevel
+
+    info "+ $*"
+
+    # See "IMPLEMENTATION NOTES" in timeout(1).
+    timeout 0 "$@" &
+
+    LAST_PID=$!
+
+    wait "${LAST_PID}"
+
+    if [ $? -ne 0 ]; then
+        LAST_PID=
+
+        err "-failed: $*"
+        exit ${EX_SOFTWARE}
+    fi
+
+    LAST_PID=
+
+    return 0
+}
+
+warn()
+{
+    printf "##!> %s\n" "$*" >&2
+}
+
+err()
+{
+    printf "###> %s\n" "$*" >&2
+}
+
+info()
+{
+    printf "===> %s\n" "$*" >&2
+}
+
+debug()
+{
+    printf "======> %s\n" "$*" >&2
+}
+
+build_libexec()
+{
+    local _s
+    _s=`which x11appjail` || exit ${EX_SOFTWARE}
+    _s=`dirname -- "${_s}"` || exit ${EX_SOFTWARE}
+    _s="${_s}/../libexec/x11appjail"
+    _s=`realpath -- "${_s}"` || exit ${EX_SOFTWARE}
+
+    LIBEXEC="${_s}"
+}
+
+build_etcdir()
+{
+    local _s
+    _s=`which x11appjail` || exit ${EX_SOFTWARE}
+    _s=`dirname -- "${_s}"` || exit ${EX_SOFTWARE}
+    _s="${_s}/../etc/x11appjail"
+
+    if [ ! -d "${_s}" ]; then
+        ETCDIR=
+        return 0
+    fi
+
+    _s=`realpath -- "${_s}"` || exit ${EX_SOFTWARE}
+
+    ETCDIR="${_s}"
+}
+
+check_humanname()
+{
+    printf "%s" "$1" | grep -qEe '^[a-zA-Z0-9][a-zA-Z0-9_-]*$'
+}
+
+create_directory()
+{
+    if [ -d "$1" ]; then
+        local owner
+        owner=`stat -f "%u:%g" -- "$1"` || exit ${EX_SOFTWARE}
+
+        if [ "${owner}" != "0:0" ]; then
+            err "$1: directory exists, but not owned by 0:0."
+            exit ${EX_NOPERM}
+        fi
+    else
+        if ! install -d -o 0 -g 0 -m 0755 -- "$1"; then
+            err "$1: error creating directory."
+            exit ${EX_IOERR}
+        fi
+    fi
+}
+
+build_appname()
+{
+    if [ -n "${APPNAME}" ]; then
+        return 0
+    fi
+
+    local appname
+    appname="$1"
+
+    if [ -z "${appname}" ]; then
+        appname=`basename -- "${APPSCRIPT_SCRIPT:-${X11APPJAIL_APPNAME}}"` || exit 1
+    fi
+
+    case "${appname}" in
+        *.AppJail) appname="${appname%.AppJail}" ;;
+        *.appjail) appname="${appname%.appjail}" ;;
+    esac
+
+    if ! check_humanname "${appname}"; then
+        err "Invalid application name: ${appname}"
+        exit 1
+    fi
+
+    APPNAME="${appname}"
+}
+
+build_appspec()
+{
+    local appspec="$1"
+    test -n "${appspec}" || exit 1
+
+    APPNAME=`printf "%s" "${appspec}" | cut -s -d: -f1` || exit 1
+    APPNAME="${APPNAME:-${appspec}}"
+
+    if ! check_humanname "${APPNAME}"; then
+        err "Invalid application name: ${APPNAME}"
+        exit 1
+    fi
+
+    PROFILE=`printf "%s" "${appspec}" | cut -s -d: -f2-` || exit 1
+    PROFILE="${PROFILE:-default}"
+
+    if ! check_humanname "${PROFILE}"; then
+        err "Invalid profile name: ${PROFILE}"
+        exit 1
+    fi
+}
+
+check_emptydir()
+{
+    local count
+    count=`find -- "$1" -mindepth 1 -maxdepth 1 -type f -print 2>/dev/null | wc -l`
+
+    if [ ${count} -eq 0 ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+self_contained()
+{
+    local me self
+
+    me=`readlink -f -- "$0"` || exit 1
+    self=`dirname -- "${me}"` || exit 1
+
+    APPJAIL=`which appjail`
+
+    if [ $? -ne 0 ]; then
+        APPJAIL="${self}/usr/local/bin/appjail"
+
+        if [ ! -x "${APPJAIL}" ]; then
+            err "${APPJAIL}: AppJail is not installed. Cannot continue."
+            exit 1
+        fi
+
+        export APPJAIL_PREFIX="${self}/usr/local"
+        APPJAIL_SELF_CONTAINED=1
+    fi
+
+    export APPJAIL
+    # Even is ${APPJAIL_SELF_CONTAINED}=0, dependencies could be self-contained.
+    export PATH="${self}/usr/local/bin:${self}/usr/local/sbin:${self}/usr/bin:${self}/usr/sbin:${PATH}"
+    export LD_LIBRARY_PATH="${self}/usr/local/lib:${self}/usr/lib:${LD_LIBRARY_PATH}"
+}
+
+check_proc()
+{
+	local pid=$1
+
+	if [ `ps -o pid -p "${pid}" 2> /dev/null | wc -l` -eq 2 ]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+check_display()
+{
+	printf "%s" "$1" | grep -qEe '^(unix|localhost|127\.0\.0\.1|\[::1\])?:[0-9]+(\.[0-9]+)?$'
+}
+
+build_timestamp()
+{
+    stat -f "%R|%Fc|%Fm|%z" -- "$1" || exit 1
+}
+
+create_file()
+{
+    if [ -f "$1" ]; then
+        local owner
+        owner=`stat -f "%u:%g" -- "$1"` || exit ${EX_SOFTWARE}
+
+        if [ "${owner}" != "0:0" ]; then
+            err "$1: file exists, but not owned by 0:0."
+            exit ${EX_NOPERM}
+        fi
+    else
+        if ! install -o 0 -g 0 -m 0600 /dev/null "$1"; then
+            err "$1: error creating file."
+            exit ${EX_IOERR}
+        fi
+    fi
+}
+
+kill_wait()
+{
+    info "Sending SIGTERM to $1"
+    kill -s SIGTERM -- $1 2> /dev/null
+    if check_proc "$1"; then
+        info "Waiting for $1 ..."
+        pwait "$1" > /dev/null 2>&1
+    fi
+}
+

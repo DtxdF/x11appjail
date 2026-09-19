@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -e -o pipefail
+
+ME=`readlink -f -- "$0"`
+SELF=`dirname -- "${ME}"`
+SOCKET="${SELF}/sock"
+
+test -S "${SOCKET}"
+
+printf "%s\n" "$1" | nc -U "${SOCKET}"

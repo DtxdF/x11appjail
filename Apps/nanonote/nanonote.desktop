@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Nanonote (AppJail:%%PROFILE%%)
+GenericName=Note taking application
+Comment=Minimalist note taking application
+Type=Application
+Exec=%%EXEC%%
+Icon=%%ICON%%
+Terminal=false
+Categories=Qt;Utility;TextEditor;

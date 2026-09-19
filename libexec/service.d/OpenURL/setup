@@ -1,0 +1,19 @@
+#!/bin/sh
+
+mkdir -p -- "${HOME}/.local/share/applications" || exit 1
+
+cat << EOF > "${HOME}/.local/share/applications/x11appjail-OpenURL.desktop" || exit 1
+[Desktop Entry]
+Name=OpenURL
+Exec=${HOME}/.x11appjail-services/OpenURL/agent %u
+Type=Application
+NoDisplay=true
+EOF
+
+DEFAULT_WEB_BROWSER=`xdg-settings get default-web-browser 2> /dev/null`
+
+if [ "${DEFAULT_WEB_BROWSER}" = "x11appjail-OpenURL.desktop" ]; then
+    exit 0
+fi
+
+xdg-settings set default-web-browser x11appjail-OpenURL.desktop

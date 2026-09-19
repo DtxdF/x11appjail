@@ -1,0 +1,9 @@
+#!/bin/sh
+# 
+# uninstall
+#
+# Some aspects mentioned in the 'install' script also apply here.
+# The only difference is that this script runs before the application
+# directory is removed. And yes, this script can be executed by either
+# the root user or a regular user.
+#

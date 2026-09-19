@@ -1,0 +1,16 @@
+OPTION start
+OPTION overwrite=force
+OPTION alias
+OPTION ip4_inherit
+OPTION ip6_inherit
+OPTION type=thick
+OPTION fstab=/var/cache/dbuild/pkgcache0 /var/cache/pkg
+
+COPY usr
+
+SYSRC clear_tmp_X=NO
+
+PKG firefox dbus xauth xrandr ratpoison xorg-fonts mesa-dri mesa-libs setxkbmap xdg-utils dunst
+#PKG --clean
+#CMD rm -rf /var/cache/pkg/*
+CMD rm -rf /var/db/pkg/repos/*

@@ -1,0 +1,176 @@
+.\"Copyright (c) 2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
+.\"All rights reserved.
+.\"
+.\"Redistribution and use in source and binary forms, with or without
+.\"modification, are permitted provided that the following conditions are met:
+.\"
+.\"* Redistributions of source code must retain the above copyright notice, this
+.\"  list of conditions and the following disclaimer.
+.\"
+.\"* Redistributions in binary form must reproduce the above copyright notice,
+.\"  this list of conditions and the following disclaimer in the documentation
+.\"  and/or other materials provided with the distribution.
+.\"
+.\"* Neither the name of the copyright holder nor the names of its
+.\"  contributors may be used to endorse or promote products derived from
+.\"  this software without specific prior written permission.
+.\"
+.\"THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+.\"AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\"IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+.\"DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+.\"FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\"DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+.\"SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+.\"CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+.\"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+.\"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+.Dd March 08, 2026
+.Dt REPRODUCE-SPEC 5
+.Os
+.Sh NAME
+.Nm x11appjail-spec
+.Nd Specification for AppJails
+.Sh SPECIFICATION
+An AppJail is linked to
+.Xr appscript 1 Ns ,
+as the latter is used to create the former. This also means that the specification consists simply of files and involves nothing special. Some of the files listed below will be created when running the
+.Cm init
+command in
+.Xr x11appjail 1 Ns ":"
+.Pp
+.Bl -tag -width xxx
+.It Pa descr
+A brief description affecting the
+.Ev X11APPJAIL_TITLE
+environment variable.
+.It Pa create
+An executable file used to create the jail when it is detected that it
+needs to be recreated or does not exist.
+.It Pa X
+An executable file that, when included, runs to start the X server via
+.Xr appjail-x11 1 Ns "."
+.It Pa install
+An executable file that runs once the AppJail is installed.
+.Pp
+It is important to note that, unlike other scripts, this one can be
+executed by root or by an unprivileged user.
+.It Pa uninstall
+An executable file that runs before the AppJail is uninstalled.
+.Pp
+It is important to note that, unlike other scripts, this one can be
+executed by root or by an unprivileged user.
+.It Pa run
+An executable file to run the application inside the jail.
+.It Pa image
+You do not include this file yourself, but it will be included by the
+.Cm build
+command.
+.El
+.Sh ENVIRONMENT
+.Bl -tag -width xx
+.It Ev X11APPJAIL_PREFIX
+Where this AppJail installs its files.
+.Pp
+At the system level, it's usually
+.Pa /usr/local Ns ,
+but for unprivileged users, it's
+.Pa ~/.local Ns "."
+.Pp
+Only available when installing or uninstalling an AppJail.
+.It Ev X11APPJAIL_BASEDIR
+The root directory of the self-contained environment.
+.It Ev X11APPJAIL_WORKDIR
+This must match the directory you used when building the AppJail, but
+from within the self-contained environment.
+.Pp
+Equivalent to
+.Qo Sy ${X11APPJAIL_BASEDIR}/x11appjail Qc Ns "."
+.It Ev X11APPJAIL_IMAGE
+AppJail image.
+.Pp
+Equivalent to
+.Qo Sy ${X11APPJAIL_WORKDIR}/image Qc Ns "."
+.It Ev XAUTHORITY
+An environment variable that is defined only when the
+.Fl Fl uid
+parameter is used in the AppJail, and which serves to point to a custom
+.Pa .Xauthority
+file copied from the user's home directory.
+.It Ev X11APPJAIL_UID
+An environment variable to specify which UID to use, which it is only available when the
+.Fl Fl uid
+parameter is used in the AppJail.
+.It Ev X11APPJAIL_GID
+Equivalent to
+.Ev X11APPJAIL_UID Ns ,
+but for the GID. Only available when the
+.Fl Fl gid
+parameter is set in the AppJail.
+.It Ev X11APPJAIL_PROFILE
+The profile that will be used. Default is
+.Sy default Ns "."
+.It Ev X11APPJAIL_APPNAME
+The application name derived from the filename, without the
+.No .AppJail or .appjail suffix.
+.It Ev X11APPJAIL_HOMEDIR
+If
+.Fl Fl uid
+is specified for the AppJail, this environment variable represents the
+user's home directory. This is not equivalent to the
+.Ev HOME
+environment variable, as AppJail retrieves the user's home directory
+from the system's user database.
+.It Ev X11APPJAIL_TITLE
+An environment variable that could be used as the title in
+.Xr Xephyr 1 Ns "."
+.Pp
+It is only set when the application will be executed.
+.It Ev X11APPJAIL_CLI_ONLY
+When the application will be executed, this environment variable is set to
+.Sy 1
+if the executable file
+.Pa X
+is not included in
+.Qo Sy ${X11APPJAIL_WORKDIR} Qc Ns ,
+and to
+.Sy 0
+if it is.
+.It Ev X11APPJAIL_USERDIR
+The user data directory that the AppJail might create, preferably when running the
+.Pa create
+executable.
+.Pp
+Equivalent to
+.Qo Sy /var/x11appjail/users/${X11APPJAIL_UID}/${X11APPJAIL_APPNAME}.${X11APPJAIL_PROFILE} Qc Ns "."
+.It Ev X11APPJAIL_DISPLAY
+The server to which applications within the jail must connect, which corresponds to the server created by
+.Xr Xephyr 1
+when using
+.Xr appjail-x11 1 Ns "."
+.Pp
+This is used only when the application will be executed and
+.Ev X11APPJAIL_CLI_ONLY
+is set to
+.Sy 0 Ns "."
+Furthermore, it is defined just before executing the
+.Pa run
+executable.
+.It Ev X11APPJAIL_HOST_DISPLAY
+Equivalent to the
+.Ev DISPLAY
+environment variable, or to
+.Sy :0
+when that is not defined.
+.Pp
+This is only defined in the environment created when executing executable
+.Pa X Ns "."
+.It Ev X11APPJAIL_JAIL
+The name of the jail that should be used.
+.El
+.Sh SEE ALSO
+.Xr appscript 1
+.Xr x11appjail 1
+.Xr appjail-x11 1
+.Sh AUTHORS
+.An Jesús Daniel Colmenares Oviedo Aq Mt DtxdF@disroot.org

@@ -1,0 +1,44 @@
+#!/bin/sh
+
+set -o pipefail
+
+load_common()
+{
+    local _s
+    _s=`which x11appjail` || exit ${EX_SOFTWARE}
+    _s=`dirname -- "${_s}"` || exit ${EX_SOFTWARE}
+    _s="${_s}/../lib/x11appjail"
+
+    LIBDIR="${_s}"
+
+    . "${LIBDIR}/common"
+}
+
+load_common
+
+build_appspec "$1"
+
+shift
+
+read NOTIFICATION_APPNAME
+read -t 1 NOTIFICATION_SUMMARY
+read -t 1 NOTIFICATION_BODY
+read -t 1 NOTIFICATION_ICON_PATH
+read -t 1 NOTIFICATION_URGENCY
+
+NOTIFICATION_BODY=`printf "%s" "${NOTIFICATION_BODY}" | base64 -d`
+
+ERRLEVEL=$?
+
+if [ ${ERRLEVEL} -ne 0 ]; then
+    err "Notification: malformed body detected: ${NOTIFICATION_BODY}"
+    exit 0
+fi
+
+notify-send \
+    -a "[${APPNAME}:${PROFILE}] ${NOTIFICATION_APPNAME}" \
+    -u "${NOTIFICATION_URGENCY}" \
+    -n /usr/local/share/appjail/Isotype.png \
+        -- "${NOTIFICATION_SUMMARY}" "${NOTIFICATION_BODY}"
+
+exit 0
