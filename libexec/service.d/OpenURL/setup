@@ -10,6 +10,8 @@ Type=Application
 NoDisplay=true
 EOF
 
+mkdir -p -- "${HOME}/.config" || exit 1
+
 DEFAULT_WEB_BROWSER=`xdg-settings get default-web-browser 2> /dev/null`
 
 if [ "${DEFAULT_WEB_BROWSER}" = "x11appjail-OpenURL.desktop" ]; then
