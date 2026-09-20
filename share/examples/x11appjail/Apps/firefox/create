@@ -2,12 +2,15 @@
 
 set -e -o pipefail
 
+NORM_APPNAME=`printf "%s" "${X11APPJAIL_APPNAME}" | sed -Ee 's/-/__/g'`
+NORM_PROFILE=`printf "%s" "${X11APPJAIL_PROFILE}" | sed -Ee 's/-/__/g'`
+
 OPTIONS=`sysrc -ni "x11appjail_options" || :`
 if [ -z "${OPTIONS}" ]; then
-    OPTIONS=`sysrc -ni "x11appjail_${X11APPJAIL_APPNAME}_options" || :`
+    OPTIONS=`sysrc -ni "x11appjail_${NORM_APPNAME}_options" || :`
 fi
 if [ -z "${OPTIONS}" ]; then
-    OPTIONS=`sysrc -ni "x11appjail_${X11APPJAIL_APPNAME}_${X11APPJAIL_PROFILE}_options" || :`
+    OPTIONS=`sysrc -ni "x11appjail_${NORM_APPNAME}_${NORM_PROFILE}_options" || :`
 fi
 
 if [ -z "${X11APPJAIL_NETWORK_MODE}" ]; then
