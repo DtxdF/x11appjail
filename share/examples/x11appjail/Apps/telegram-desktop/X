@@ -1,0 +1,26 @@
+#!/bin/sh
+
+XEPHYR_ARGS="\
+-resizeable \
+-no-host-grab \
++extension RANDR \
++extension RENDER \
++extension GLX \
++extension XVideo \
++extension DOUBLE-BUFFER \
++extension SECURITY \
++extension DAMAGE \
++extension X-Resource \
+-extension \
+XINERAMA \
++extension MIT-SHM \
+-nolisten tcp \
+-title \"${X11APPJAIL_TITLE}\""
+
+exec "${APPJAIL}" x11 "${X11APPJAIL_JAIL}" \
+    exec_start="ratpoison" \
+    exec_user="noroot" \
+    xephyr_user="${X11APPJAIL_UID}" \
+    xephyr_args="${XEPHYR_ARGS}" \
+    xauthority="${XAUTHORITY}" \
+    display="${X11APPJAIL_HOST_DISPLAY}"
