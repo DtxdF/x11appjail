@@ -1,0 +1,18 @@
+ARG puid
+ARG pgid
+
+OPTION start
+OPTION overwrite=force
+OPTION import+root=input:./image portable
+OPTION volume=data mountpoint:/noroot owner:${puid} group:${pgid}
+OPTION template=template.conf
+OPTION meta=x11appjail.exec.user:noroot
+OPTION x11
+
+CMD pw groupadd -n noroot -g "${pgid}" && \
+    pw useradd -n noroot -d /noroot -u "${puid}" -g "${pgid}" && \
+    mkdir -p /noroot && \
+    chown -R noroot:noroot /noroot
+
+SERVICE dbus enable
+SERVICE dbus start

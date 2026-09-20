@@ -1,0 +1,9 @@
+#!/bin/sh
+
+APPNAME="thunderbird"
+
+set -e -o pipefail
+
+PREFIX=`x11appjail prefix`
+
+exec "${PREFIX}/libexec/x11appjail/misc/simple-desktop-file-utils.sh" "${APPNAME}" "I"

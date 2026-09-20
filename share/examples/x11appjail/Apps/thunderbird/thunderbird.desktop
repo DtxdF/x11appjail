@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Thunderbird (AppJail:%%PROFILE%%)
+GenericName=Mail Client
+Comment=Mail client and News Reader
+Exec=%%EXEC%% %u
+Icon=%%ICON%%
+StartupNotify=true
+Terminal=false
+Type=Application
+Categories=Network;Email;News;InstantMessaging;
