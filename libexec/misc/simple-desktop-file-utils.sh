@@ -123,5 +123,5 @@ CACHE_FILE="${APPSDIR}/mimeinfo.cache"
     if [ -d "${APPSDIR}" ]; then
         update-desktop-database -q -- "${APPSDIR}"
     fi
-) 9> "${CACHE_FILE}"
+) 9>> "${CACHE_FILE}"
 exec 9>&-
