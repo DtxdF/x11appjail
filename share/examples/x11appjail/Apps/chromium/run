@@ -6,4 +6,4 @@ exec "${JEXEC}" -l \
     -U noroot \
     -e DISPLAY="${X11APPJAIL_DISPLAY}" \
     "${X11APPJAIL_JAIL}" \
-    chrome "$@"
+    dbus-run-session -- chrome --ignore-gpu-blocklist "$@"
