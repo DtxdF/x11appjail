@@ -153,6 +153,15 @@ if x11appjail sys-attr check "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.labels
     done
 fi
 
+if x11appjail sys-attr check mount.system-fonts; then
+    PREFIX=`x11appjail prefix`
+    FONTSDIR="${PREFIX}/share/fonts"
+
+    if [ -d "${FONTSDIR}" ]; then
+        set -- "$@" -o fstab="\"${FONTSDIR}\" /system-fonts nullfs ro"
+    fi
+fi
+
 mkdir -p -m 0755 -- "${X11APPJAIL_USERDIR}"
 set -- "$@" -o fstab="${X11APPJAIL_USERDIR} data <volumefs>"
 

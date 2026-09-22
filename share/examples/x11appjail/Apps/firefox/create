@@ -2,22 +2,11 @@
 
 set -e -o pipefail
 
-NORM_APPNAME=`printf "%s" "${X11APPJAIL_APPNAME}" | sed -Ee 's/-/__/g'`
-NORM_PROFILE=`printf "%s" "${X11APPJAIL_PROFILE}" | sed -Ee 's/-/__/g'`
-
-OPTIONS=`sysrc -ni "x11appjail_options" || :`
-if [ -z "${OPTIONS}" ]; then
-    OPTIONS=`sysrc -ni "x11appjail_${NORM_APPNAME}_options" || :`
-fi
-if [ -z "${OPTIONS}" ]; then
-    OPTIONS=`sysrc -ni "x11appjail_${NORM_APPNAME}_${NORM_PROFILE}_options" || :`
+if x11appjail sys-attr check network.mode; then
+    NETWORK_MODE=`x11appjail sys-attr cat network.mode`
 fi
 
-if [ -z "${X11APPJAIL_NETWORK_MODE}" ]; then
-    X11APPJAIL_NETWORK_MODE=`sysrc -ni x11appjail_network_mode || :`
-fi
-
-NETWORK_MODE="${X11APPJAIL_NETWORK_MODE:-none}"
+NETWORK_MODE="${NETWORK_MODE:-none}"
 
 set --
 set -- "$@" -j "${X11APPJAIL_JAIL}"
@@ -30,7 +19,11 @@ elif [ "${NETWORK_MODE}" = "virtualnet" ]; then
         echo "ERROR: Virtual Networks requires AppJail to be installed on the host."
     fi
 
-    set -- "$@" -o virtualnet="${X11APPJAIL_VIRTUALNET}:<random> default" -o nat
+    if x11appjail sys-attr check network.virtualnet; then
+        VIRTUALNET=`x11appjail sys-attr cat network.virtualnet`
+    fi
+
+    set -- "$@" -o virtualnet="${VIRTUALNET}:<random> default" -o nat
 else
     if [ "${NETWORK_MODE}" != "none" ]; then
         echo "WARNING: invalid network mode '${NETWORK_MODE}', falling back to 'none'" >&2
@@ -39,11 +32,18 @@ else
 fi
 
 if [ "${NETWORK_MODE}" = "virtualnet" ]; then
-    SECGRP_TABLE=`sysrc -ni x11appjail_secgrp_table || :`
+    SECGRP_TABLES=
 
-    if [ -n "${SECGRP_TABLE}" ]; then
+    if x11appjail sys-attr check network.security-group.tables; then
+        SECGRP_TABLES=`x11appjail sys-attr cat network.security-group.tables`
+    fi
+
+    if [ -n "${SECGRP_TABLES}" ]; then
         set -- "$@" -o label="security-group:1"
-        set -- "$@" -o label="security-group.tables.${SECGRP_TABLE}:${SECGRP_TABLE}"
+
+        for SECGRP_TABLE in ${SECGRP_TABLES}; do
+            set -- "$@" -o label="security-group.tables.${SECGRP_TABLE}:${SECGRP_TABLE}"
+        done
     fi
 fi
 
@@ -57,77 +57,109 @@ WEBCAM_ALREADY=false
 USB_ALREADY=false
 SOUND_ALREADY=false
 
-for OPTION in ${OPTIONS}; do
-    if [ -n "${X11APPJAIL_ENABLE_3D}" ] || [ "${OPTION}" = "enable_3d" ]; then
-        ${ENABLE_3D_ALREADY} && continue
+if x11appjail sys-attr check users.${X11APPJAIL_UID}.perms; then
+    PERMS=`x11appjail sys-attr cat users.${X11APPJAIL_UID}.perms`
 
-        set -- "$@" -o device="path 'dri' unhide"
-        set -- "$@" -o device="path 'dri/*' unhide"
-        set -- "$@" -o device="path 'drm' unhide"
-        set -- "$@" -o device="path 'drm/*' unhide"
-        set -- "$@" -o device="path 'pci' unhide"
-        set -- "$@" -o device="path 'nvidia*' unhide"
+    for PERM in ${PERMS}; do
+        if [ "${PERM}" = "enable_3d" ]; then
+            if ${ENABLE_3D_ALREADY}; then
+                continue
+            fi
 
-        ENABLE_3D_ALREADY=true
-    fi
+            PERM_ATTR="${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.allow.enable_3d"
 
-    if [ -n "${X11APPJAIL_ENABLE_WEBCAM}" ] || [ "${OPTION}" = "webcam" ]; then
-        ${WEBCAM_ALREADY} && continue
+            if ! x11appjail sys-attr check "${PERM_ATTR}" "${X11APPJAIL_UID}"; then
+                continue
+            fi
 
-        set -- "$@" -o device="path 'cuse*' unhide"
-        set -- "$@" -o device="path 'video*' unhide"
+            set -- "$@" -o device="path 'dri' unhide"
+            set -- "$@" -o device="path 'dri/*' unhide"
+            set -- "$@" -o device="path 'drm' unhide"
+            set -- "$@" -o device="path 'drm/*' unhide"
+            set -- "$@" -o device="path 'pci' unhide"
+            set -- "$@" -o device="path 'nvidia*' unhide"
 
-        WEBCAM_ALREADY=true
-    fi
+            ENABLE_3D_ALREADY=true
+        elif [ "${PERM}" = "webcam" ]; then
+            if ${WEBCAM_ALREADY}; then
+                continue
+            fi
 
-    if [ -n "${X11APPJAIL_ENABLE_USB}" ] || [ "${OPTION}" = "usb" ]; then
-        ${USB_ALREADY} && continue
+            PERM_ATTR="${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.allow.webcam"
 
-        set -- "$@" -o device="path usb unhide"
-        set -- "$@" -o device="path 'usb/*' unhide"
+            if ! x11appjail sys-attr check "${PERM_ATTR}" "${X11APPJAIL_UID}"; then
+                continue
+            fi
 
-        USB_ALREADY=true
-    fi
+            set -- "$@" -o device="path 'cuse*' unhide"
+            set -- "$@" -o device="path 'video*' unhide"
 
-    if [ -n "${X11APPJAIL_ENABLE_SOUND}" ] || [ "${OPTION}" = "sound" ]; then
-        ${SOUND_ALREADY} && continue
+            WEBCAM_ALREADY=false
+        elif [ "${PERM}" = "usb" ]; then
+            if ${USB_ALREADY}; then
+                continue
+            fi
 
-        set -- "$@" -o device="path sndstat unhide"
-        set -- "$@" -o device="path mixer unhide"
-        set -- "$@" -o device="path 'mixer*' unhide"
-        set -- "$@" -o device="path dsp unhide"
-        set -- "$@" -o device="path 'dsp*' unhide"
-        set -- "$@" -o device="path speaker unhide"
-        set -- "$@" -o device="path 'speaker*' unhide"
+            PERM_ATTR="${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.allow.usb"
 
-        SOUND_ALREADY=true
-    fi
-done
+            if ! x11appjail sys-attr check "${PERM_ATTR}" "${X11APPJAIL_UID}"; then
+                continue
+            fi
 
-if [ -n "${X11APPJAIL_EPHEMERAL}" ]; then
+            set -- "$@" -o device="path usb unhide"
+            set -- "$@" -o device="path 'usb/*' unhide"
+
+            USB_ALREADY=false
+        elif [ "${PERM}" = "sound" ]; then
+            if ${SOUND_ALREADY}; then
+                continue
+            fi
+
+            PERM_ATTR="${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.allow.sound"
+
+            if ! x11appjail sys-attr check "${PERM_ATTR}" "${X11APPJAIL_UID}"; then
+                continue
+            fi
+
+            set -- "$@" -o device="path sndstat unhide"
+            set -- "$@" -o device="path mixer unhide"
+            set -- "$@" -o device="path 'mixer*' unhide"
+            set -- "$@" -o device="path dsp unhide"
+            set -- "$@" -o device="path 'dsp*' unhide"
+            set -- "$@" -o device="path speaker unhide"
+            set -- "$@" -o device="path 'speaker*' unhide"
+
+            SOUND_ALREADY=false
+        fi
+    done
+fi
+
+if [ -n "${X11APPJAIL_EPHEMERAL}" ] || \
+        x11appjail sys-attr check "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.jail.ephemeral" "${X11APPJAIL_UID}"; then
     set -- "$@" -o ephemeral
 fi
 
-if [ -n "${X11APPJAIL_LABEL0}" ]; then
-    labels=`mktemp -d -t x11appjail`
-    index=0
+if x11appjail sys-attr check "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.labels"; then
+    LABELS=`x11appjail sys-attr cat "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.labels"`
 
-    env | grep -Ee '^X11APPJAIL_LABEL[0-9]+=.*$' | while IFS= read -r env; do
-        value=`printf "%s" "${env}" | cut -d= -f2-`
+    for LABEL in ${LABELS}; do
+        if ! x11appjail sys-attr check "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.labels.${LABEL}"; then
+            continue
+        fi
 
-        printf "%s\n" "${value}" > "${labels}/${index}"
+        VALUE=`x11appjail sys-attr cat "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.labels.${LABEL}"`
 
-        index=$((index+1))
+        set -- "$@" -o label="${LABEL}:${VALUE}"
     done
+fi
 
-    for label_file in "${labels}"/*; do
-        label=`head -1 -- "${label_file}"`
+if x11appjail sys-attr check mount.system-fonts; then
+    PREFIX=`x11appjail prefix`
+    FONTSDIR="${PREFIX}/share/fonts"
 
-        set -- "$@" -o label="${label}"
-    done
-
-    rm -rf -- "${labels}"
-    unset labels index label_file label
+    if [ -d "${FONTSDIR}" ]; then
+        set -- "$@" -o fstab="\"${FONTSDIR}\" /system-fonts nullfs ro"
+    fi
 fi
 
 mkdir -p -m 0755 -- "${X11APPJAIL_USERDIR}"

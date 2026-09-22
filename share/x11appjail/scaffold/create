@@ -111,6 +111,19 @@ if x11appjail sys-attr check "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.labels
 fi
 
 #
+# Assuming the application to be run inside the jail uses fontconfig.
+# See also the Makejail file.
+#
+if x11appjail sys-attr check mount.system-fonts; then
+    PREFIX=`x11appjail prefix`
+    FONTSDIR="${PREFIX}/share/fonts"
+
+    if [ -d "${FONTSDIR}" ]; then
+        set -- "$@" -o fstab="\"${FONTSDIR}\" /system-fonts nullfs ro"
+    fi
+fi
+
+#
 # The user directory is not created by APPSCRIPT; that is your responsibility.
 # The reason is that it may not be necessary for certain applications.
 #

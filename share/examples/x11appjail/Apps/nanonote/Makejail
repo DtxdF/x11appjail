@@ -1,71 +1,37 @@
-#
-# Makejail
-#
-# Unlike the Makejail you used to build the AppJail image, this Makejail
-# handles importing the image and subsequently configuring the jail at
-# runtime.
-#
-
-#
-# A more interesting use of these arguments is when `su-exec` (inside the jail)
-# and an entrypoint.sh script are used, just as is done with OCI images.
-#
 ARG puid
 ARG pgid
 
 OPTION start
 OPTION overwrite=force
 OPTION import+root=input:./image portable
-#
-# Here we use a volume, so the 'create' script does not need to specify
-# a hardcoded path.
-#
 OPTION volume=data mountpoint:/noroot owner:${puid} group:${pgid}
 OPTION template=template.conf
-#
-# This label is only important if you want the `exec` and 'login'
-# subcommands to work.
-#
-# The `exec` subcommand is also used by services, so they will not
-# work if this label is not added.
-#
-# See x11appjail(1) for details.
-#
 OPTION meta=x11appjail.exec.user:noroot
-#
-# Important!
-#
-# This will share the host's `/tmp/.X11-unix` directory. Although this
-# directory is mounted in read-only mode, you should set `clear_tmp_X=NO`
-# in this Makejail or in the one used by Reproduce.
-#
-# Another alternative is to use `tmpdir`, but this option is less secure
-# because, firstly, it shares the host's entire `/tmp` directory and,
-# secondly, it means `/tmp/.X11-unix` is mounted in read-write mode.
-# In 99% of cases, you only need the `x11` option (and nothing else).
-#
-# Of course, if your application is a CLI/TUI application, simply remove
-# this option.
-#
 OPTION x11
 
-#
-# The unprivileged user that will run the application.
-# Remember that the UID and GID may vary, so we must modify these
-# attributes in the data directory. Note that this will allow the
-# user to access that directory.
-#
+CMD if [ -d "/system-fonts" ]; then \
+        { \
+            echo -e '<?xml version="1.0"?>'; \
+            echo -e '<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">'; \
+            echo -e '<fontconfig>'; \
+            echo -e '  <dir>/system-fonts</dir>'; \
+            echo -e '</fontconfig>'; \
+        } > /usr/local/etc/fonts/conf.d/51-x11appjail.conf; \
+        fc-cache -f; \
+    fi
+
 CMD pw groupadd -n noroot -g "${pgid}" && \
     pw useradd -n noroot -d /noroot -u "${puid}" -g "${pgid}" && \
     mkdir -p /noroot && \
     chown -R noroot:noroot /noroot
 
-#
-# This depends on how you build your AppJail image, but if the application
-# is GUI, you will likely need to install D-Bus if the application does not
-# include it.
-# 
-CMD if which -s dbus-daemon; then \
-        service dbus enable; \
-        service dbus start; \
+CMD if [ -d "/system-fonts" ]; then \
+        { \
+            echo -e '<?xml version="1.0"?>'; \
+            echo -e '<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">'; \
+            echo -e '<fontconfig>'; \
+            echo -e '  <dir>/system-fonts</dir>'; \
+            echo -e '</fontconfig>'; \
+        } > /usr/local/etc/fonts/conf.d/51-x11appjail.conf; \
+        fc-cache -f; \
     fi

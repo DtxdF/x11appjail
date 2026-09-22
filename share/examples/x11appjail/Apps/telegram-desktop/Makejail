@@ -9,6 +9,17 @@ OPTION template=template.conf
 OPTION meta=x11appjail.exec.user:noroot
 OPTION x11
 
+CMD if [ -d "/system-fonts" ]; then \
+        { \
+            echo -e '<?xml version="1.0"?>'; \
+            echo -e '<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">'; \
+            echo -e '<fontconfig>'; \
+            echo -e '  <dir>/system-fonts</dir>'; \
+            echo -e '</fontconfig>'; \
+        } > /usr/local/etc/fonts/conf.d/51-x11appjail.conf; \
+        fc-cache -f; \
+    fi
+
 CMD pw groupadd -n noroot -g "${pgid}" && \
     pw useradd -n noroot -d /noroot -u "${puid}" -g "${pgid}" && \
     mkdir -p /noroot && \

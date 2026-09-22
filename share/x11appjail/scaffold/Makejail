@@ -50,6 +50,21 @@ OPTION meta=x11appjail.exec.user:noroot
 OPTION x11
 
 #
+# Assuming the host system's fonts are mounted, let's configure the jail
+# so that applications can use the new fonts. Also rebuild the font cache.
+#
+CMD if [ -d "/system-fonts" ] && which -s fc-cache; then \
+        { \
+            echo -e '<?xml version="1.0"?>'; \
+            echo -e '<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">'; \
+            echo -e '<fontconfig>'; \
+            echo -e '  <dir>/system-fonts</dir>'; \
+            echo -e '</fontconfig>'; \
+        } > /usr/local/etc/fonts/conf.d/51-x11appjail.conf; \
+        fc-cache -f; \
+    fi
+
+#
 # The unprivileged user that will run the application.
 # Remember that the UID and GID may vary, so we must modify these
 # attributes in the data directory. Note that this will allow the
