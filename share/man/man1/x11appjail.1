@@ -25,13 +25,33 @@
 .\"CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 .\"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 .\"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.Dd September 19, 2026
+.Dd September 21, 2026
 .Dt X11APPJAIL 1
 .Os
 .Sh NAME
 .Nm x11appjail
 .Nd Tool for creating, verifying, installing, and running AppJails
 .Sh SYNOPSIS
+.Nm
+.Cm attr
+.Cm check
+.Ar attr
+.Nm
+.Cm attr
+.Cm cat
+.Ar attr
+.Nm
+.Cm attr
+.Cm ls
+.Nm
+.Cm attr
+.Cm put
+.Ar attr
+.Oo Ar value Oc
+.Nm
+.Cm attr
+.Cm rm
+.Ar attr
 .Nm
 .Cm build
 .Oo Fl O Oc
@@ -78,6 +98,31 @@
 .Nm
 .Cm trusted
 .Nm
+.Cm sys-attr
+.Cm check
+.Ar attr
+.Oo Ar uid Oc
+.Nm
+.Cm sys-attr
+.Cm cat
+.Ar attr
+.Oo Ar uid Oc
+.Nm
+.Cm sys-attr
+.Cm ls
+.Oo Ar uid Oc
+.Nm
+.Cm sys-attr
+.Cm put
+.Ar attr
+.Ar value
+.Oo Ar uid Oc
+.Nm
+.Cm sys-attr
+.Cm rm
+.Ar attr
+.Oo Ar uid Oc
+.Nm
 .Cm untrust Ar vendorid
 .Nm
 .Cm verify Ar filename
@@ -104,6 +149,27 @@ CLI, TUI or X11 application. See also
 The options are as follows:
 .Pp
 .Bl -tag -width xxx
+.It Cm attr
+Manipulate user attributes.
+.Pp
+See
+.Sx ATTRIBUTES
+for details.
+.Pp
+The options are as follows:
+.Pp
+.Bl -tag -width xx -offset 4
+.It Cm check Ar attr
+Check if a user attribute exists.
+.It Cm cat Ar attr
+Display the content of a user attribute.
+.It Cm ls
+List all user attributes.
+.It Cm put Ar attr Oo Ar value Oc
+Create or update a user attribute.
+.It Cm rm Ar attr
+Remove a user attribute.
+.El
 .It Cm build Oo Fl O Oc Oo Fl A Ar algo Oc Oo Fl a Ar arch Oc Oo Fl C Ar directory Oc Oo Fl f Ar directory Oc Oo Fl i Ar image Oc Oo Fl o Ar filename Oc Oo Fl s Ar vendorid Ns : Ns Ar public_key Oc Oo Fl t Ar tag Oc Oo Fl v Ar version Oc Ar directory
 Create an AppJail.
 .Pp
@@ -313,6 +379,33 @@ If you define a
 .Ar pattern
 .Po see Xr grep 1 Pc Ns ,
 you can shorten the list by searching by comment.
+.It Cm sys-attr
+Manipulate system attributes.
+.Pp
+See
+.Sx ATTRIBUTES
+for details.
+.Pp
+The options are as follows:
+.Pp
+.Bl -tag -width xx -offset 4
+.It Cm check Ar attr
+Check if a system attribute exists.
+.It Cm cat Ar attr Oo Ar uid Oc
+Display the content of a system attribute.
+.It Cm ls Oo Ar uid Oc
+List all system attributes.
+.It Cm put Ar attr Oo Ar value Oc Oo Ar uid Oc
+Create or update a system attribute.
+.It Cm rm Ar attr Oo Ar uid Oc
+Remove a system attribute.
+.El
+.Pp
+If
+.Ar uid
+is set, it works like
+.Cm attr Ns ,
+but with an arbitrary UID.
 .It Cm untrust Ar vendorid
 Removes an installed public key.
 .It Cm verify Ar filename
@@ -609,6 +702,49 @@ It is strongly recommended to limit the scope of services to a single
 task and to assume that any input from the jail is untrusted. See
 .Xr sprog 7
 for relevant recommendations.
+.Sh ATTRIBUTES
+Attributes are a small set of text files that allow both the system
+operator and an unprivileged user to define data that an AppJail can
+use to change its own behavior.
+.Pp
+Attributes come in two forms: user attributes and system attributes.
+System attributes are managed by the system operator or in other words,
+by the root user. User attributes are managed by the unprivileged user
+and are created per user.
+.Pp
+For example, a system operator can create the system attribute
+.Sy users. Ns Ar uid Ns Sy .perms Ns ,
+the content of which might be
+.Qo Sy enable_3d sound usb webcam Qc Ns "."
+An unprivileged user can create the user attributes
+.Ar appname Ns Sy : Ns Ar profile Ns Sy .allow.enable_3d
+and
+.Ar appname Ns Sy : Ns Ar profile Ns .allow.sound Ns "."
+Subsequently, when executing an AppJail, devices become visible or remain
+hidden depending on whether the user holds the corresponding permission
+and has authorized those permissions for the jail being created.
+In this case, the hardware acceleration and sound devices will become
+visible, provided the AppJail has incorporated the necessary logic to
+make them visible.
+.Pp
+Attributes are the recommended way to change an AppJail's behavior, but
+this is entirely up to AppJail. Attributes don't define logic, only data.
+.Pp
+Alternative ways to change the behavior of an AppJail are
+.Xr rc.conf 5
+together with
+.Xr sysrc 8
+and the
+.Ev X11APPJAIL_*
+environment variables. The problem with these approaches is that only the
+system operator can use them, and in the case of the
+.Ev X11APPJAIL_*
+environment variables, they apply to an installed AppJail and are static.
+.Pp
+See
+.Sx IMPLEMENTATION NOTES
+for restrictions on the characters allowed in an attribute name and the
+length of the content.
 .Sh IMPLEMENTATION NOTES
 The AppJail filename serves as the application name used to construct other strings, such as the name of the jail where the application will run and the data directory used for data persistence, among other things.
 .Pp
@@ -627,8 +763,37 @@ a jail named
 .Sy x11appjail-htop-15000_default
 will be created. Since the user is running this AppJail in portable mode,
 only the default profile can be used.
+.Pp
+An attribute is a simple text file with a minimum of 0 bytes and a
+maximum of 4096 bytes. And only one line is used.
+.br
+Each attribute represents an exclusive lock by itself, so operations
+such as removing it, updating the content, or reading its content are
+performed step by step even in parallel. This is to avoid races. This
+is why it is recommended to use attribute commands to manage attributes
+instead of operating on them directly in
+.Pa /var/x11appjail/attr Ns "."
+An attribute filename must conform to the following pattern:
+.Qo Sy "^[a-zA-Z0-9][a-zA-Z0-9_:.-]*$" Qc Ns "."
+.br
+From the kernel's point of view, attributes are the exclusive property
+of root, including user attributes, so unprivileged users can only use
+attribute commands to manage attributes and cannot manage them directly.
 .Sh ENVIRONMENT
 .Bl -tag -width xx
+.It Ev X11APPJAIL_*
+.Ev X11APPJAIL_*
+environment variables are preserved when installing the AppJail, but only for the root user. If
+.Xr doas.conf 5
+has been correctly configured as specified in the
+.Sx UNPRIVILEGED USERS
+section,
+.Ev X11APPJAIL_*
+environment variables defined by unprivileged users will be ignored, as the environment is not inherited when switching to the root user.
+.br
+This poses a problem when running an AppJail in portable mode. See the
+.Sx ATTRIBUTES
+section for details on how to solve this.
 .It Ev DISPLAY
 The X server to which
 .Xr Xephyr 1
@@ -651,12 +816,13 @@ Location of installed AppJails.
 Location of the vendors' public keys.
 .It Pa /var/x11appjail/users
 Location of data directories used by users.
-.Pp
 .Nm
 will not create this directory or its subdirectories. It is the
 responsibility of the AppJails to create this directory and
 conventionally map the unprivileged user's UID and GID so that
 the user can access those files from the host.
+.It Pa /var/x11appjail/attr
+Location of attribute files.
 .It Pa /var/run/x11appjail-cache
 Location of the directory used by the background process when AppJail
 is invoked with the

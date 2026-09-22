@@ -2,64 +2,15 @@
 
 set -e -o pipefail
 
-if [ -z "${X11APPJAIL_NETWORK_MODE}" ]; then
-    X11APPJAIL_NETWORK_MODE=`sysrc -ni x11appjail_network_mode || :`
-fi
-
-NETWORK_MODE="${X11APPJAIL_NETWORK_MODE:-none}"
-
 set --
 set -- "$@" -j "${X11APPJAIL_JAIL}"
 set -- "$@" -f "${X11APPJAIL_WORKDIR}/Makejail"
 
-if [ "${NETWORK_MODE}" = "inherit" ]; then
-    set -- "$@" -o alias -o ip4_inherit -o ip6_inherit
-elif [ "${NETWORK_MODE}" = "virtualnet" ]; then
-    if [ "${APPJAIL_SELF_CONTAINED}" != 0 ]; then
-        echo "ERROR: Virtual Networks requires AppJail to be installed on the host."
-    fi
+set -- "$@" -o alias -o ip4_disable -o ip6_disable
 
-    set -- "$@" -o virtualnet="${X11APPJAIL_VIRTUALNET}:<random> default" -o nat
-else
-    if [ "${NETWORK_MODE}" != "none" ]; then
-        echo "WARNING: invalid network mode '${NETWORK_MODE}', falling back to 'none'" >&2
-    fi
-    set -- "$@" -o alias -o ip4_disable -o ip6_disable
-fi
-
-if [ "${NETWORK_MODE}" = "virtualnet" ]; then
-    SECGRP_TABLE=`sysrc -ni x11appjail_secgrp_table || :`
-
-    if [ -n "${SECGRP_TABLE}" ]; then
-        set -- "$@" -o label="security-group:1"
-        set -- "$@" -o label="security-group.tables.${SECGRP_TABLE}:${SECGRP_TABLE}"
-    fi
-fi
-
-if [ -n "${X11APPJAIL_EPHEMERAL}" ]; then
+if [ -n "${X11APPJAIL_EPHEMERAL}" ] || \
+        x11appjail sys-attr check "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.jail.ephemeral" "${X11APPJAIL_UID}"; then
     set -- "$@" -o ephemeral
-fi
-
-if [ -n "${X11APPJAIL_LABEL0}" ]; then
-    labels=`mktemp -d -t x11appjail`
-    index=0
-
-    env | grep -Ee '^X11APPJAIL_LABEL[0-9]+=.*$' | while IFS= read -r env; do
-        value=`printf "%s" "${env}" | cut -d= -f2-`
-
-        printf "%s\n" "${value}" > "${labels}/${index}"
-
-        index=$((index+1))
-    done
-
-    for label_file in "${labels}"/*; do
-        label=`head -1 -- "${label_file}"`
-
-        set -- "$@" -o label="${label}"
-    done
-
-    rm -rf -- "${labels}"
-    unset labels index label_file label
 fi
 
 mkdir -p -m 0755 -- "${X11APPJAIL_USERDIR}"

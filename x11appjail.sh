@@ -39,6 +39,7 @@ DATADIR="/var/x11appjail"
 APPSDIR="${DATADIR}/apps"
 KEYSDIR="${DATADIR}/keys"
 USERSDIR="${DATADIR}/users"
+ATTRDIR="/var/x11appjail/attrs"
 UNIXEXEC_TMPDIR=
 
 main()
@@ -47,12 +48,13 @@ main()
     local cmd="$1"
 
     case "${cmd}" in
-        clipboard|run-cmd|destroy-jail|login|init|list|run|trusted|service|print-display|verify|prefix) ;;
+        attr|clipboard|destroy-jail|init|list|login|prefix|print-display|run|run-cmd|service|trusted|verify) ;;
         version) version; exit 0 ;;
         build) ;&
         trust) ;&
         untrust) ;&
-        remove) root_only=true ;;
+        remove) ;&
+        sys-attr) root_only=true ;;
         *) usage; exit ${EX_USAGE} ;;
     esac
 
@@ -68,6 +70,209 @@ main()
     shift
 
     ${cmd} "$@"
+}
+
+attr()
+{
+    local operation="$1"
+
+    case "${operation}" in
+        put|rm|cat|ls|check) ;;
+        *) usage; exit ${EX_USAGE} ;;
+    esac
+
+    shift
+
+    attr_${operation} "$@"
+}
+
+attr_put()
+{
+    local attr="$1"
+
+    if [ -z "${attr}" ]; then
+        usage
+        exit ${EX_USAGE}
+    fi
+
+    build_libexec
+
+    local value="$2"
+
+    exec doas "${LIBEXEC}/map-exec" "attr" "put" "${attr}" "${value}"
+}
+
+attr_rm()
+{
+    local attr="$1"
+
+    if [ -z "${attr}" ]; then
+        usage
+        exit ${EX_USAGE}
+    fi
+
+    build_libexec
+
+    exec doas "${LIBEXEC}/map-exec" "attr" "rm" "${attr}"
+}
+
+attr_cat()
+{
+    local attr="$1"
+
+    if [ -z "${attr}" ]; then
+        usage
+        exit ${EX_USAGE}
+    fi
+
+    build_libexec
+
+    exec doas "${LIBEXEC}/map-exec" "attr" "cat" "${attr}"
+}
+
+attr_check()
+{
+    local attr="$1"
+
+    if [ -z "${attr}" ]; then
+        usage
+        exit ${EX_USAGE}
+    fi
+
+    if ! check_attr "${attr}"; then
+        err "Invalid attribute: ${attr}"
+        exit 1
+    fi
+
+    local uid
+    uid=`id -u` || exit ${EX_SOFTWARE}
+
+    local attrdir="${ATTRDIR}/users/${uid}"
+    local attr_file="${attrdir}/${attr}"
+
+    exec test -f "${attr_file}"
+}
+
+attr_ls()
+{
+    local uid
+    uid=`id -u` || exit ${EX_SOFTWARE}
+
+    local attrdir="${ATTRDIR}/users/${uid}"
+
+    if [ -d "${attrdir}" ]; then
+        exec ls -1 -- "${attrdir}"
+    fi
+}
+
+sys-attr()
+{
+    local operation="$1"
+
+    case "${operation}" in
+        put|rm|cat|ls|check) ;;
+        *) usage; exit ${EX_USAGE} ;;
+    esac
+
+    shift
+
+    sys-attr_${operation} "$@"
+}
+
+sys-attr_check()
+{
+    local attr="$1"
+
+    if [ -z "${attr}" ]; then
+        usage
+        exit ${EX_USAGE}
+    fi
+
+    if ! check_attr "${attr}"; then
+        err "Invalid attribute: ${attr}"
+        exit 1
+    fi
+
+    local uid="$2"
+    local attrdir
+
+    if [ -n "${uid}" ]; then
+        uid=`id -u -- "${uid}"` || exit ${EX_SOFTWARE}
+        attrdir="${ATTRDIR}/users/${uid}"
+    else
+        attrdir="${ATTRDIR}/system"
+    fi
+
+    local attr_file="${attrdir}/${attr}"
+
+    exec test -f "${attr_file}"
+}
+
+sys-attr_put()
+{
+    local attr="$1"
+
+    if [ -z "${attr}" ]; then
+        usage
+        exit ${EX_USAGE}
+    fi
+
+    build_libexec
+
+    local value="$2"
+    local uid="$3"
+
+    exec "${LIBEXEC}/sys-attr" "put" "${attr}" "${value}" "${uid}"
+}
+
+sys-attr_rm()
+{
+    local attr="$1"
+
+    if [ -z "${attr}" ]; then
+        usage
+        exit ${EX_USAGE}
+    fi
+
+    build_libexec
+
+    local uid="$2"
+
+    exec "${LIBEXEC}/sys-attr" "rm" "${attr}" "${uid}"
+}
+
+sys-attr_cat()
+{
+    local attr="$1"
+
+    if [ -z "${attr}" ]; then
+        usage
+        exit ${EX_USAGE}
+    fi
+
+    build_libexec
+
+    local uid="$2"
+
+    exec "${LIBEXEC}/sys-attr" "cat" "${attr}" "${uid}"
+}
+
+sys-attr_ls()
+{
+    local uid="$1"
+
+    local attrdir
+
+    if [ -z "${uid}" ]; then
+        attrdir="${ATTRDIR}/system"
+    else
+        uid=`id -u -- "${uid}"` || exit ${EX_SOFTWARE}
+        attrdir="${ATTRDIR}/users/${uid}"
+    fi
+
+    if [ -d "${attrdir}" ]; then
+        exec ls -1 -- "${attrdir}"
+    fi
 }
 
 prefix()
@@ -805,7 +1010,12 @@ load_common()
 usage()
 {
     cat << EOF
-usage: x11appjail build [-O] [-A <algo>] [-a <arch>] [-C <directory>] [-f <directory>]
+usage: x11appjail attr check <attr>
+       x11appjail attr cat <attr>
+       x11appjail attr ls
+       x11appjail attr put <attr> [<value>]
+       x11appjail attr rm <attr>
+       x11appjail build [-O] [-A <algo>] [-a <arch>] [-C <directory>] [-f <directory>]
                [-i <image>] [-o <filename>] [-s <vendorid>:<public_key>] [-t <tag>]
                [-v <version>] <directory>
        x11appjail clipboard [-O] [-s <selection>] <appspec1> [<appspec2>]
@@ -821,6 +1031,11 @@ usage: x11appjail build [-O] [-A <algo>] [-a <arch>] [-C <directory>] [-f <direc
        x11appjail service <service> <appspec> [<args> ...]
        x11appjail trust <vendorid> <public_key>
        x11appjail trusted
+       x11appjail sys-attr check <attr> [<uid>]
+       x11appjail sys-attr cat <attr> [<uid>]
+       x11appjail sys-attr ls [<uid>]
+       x11appjail sys-attr put <attr> <value> [<uid>]
+       x11appjail sys-attr rm <attr> [<uid>]
        x11appjail untrust <vendorid>
        x11appjail verify <filename>
        x11appjail version

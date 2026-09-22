@@ -45,7 +45,7 @@ CMD="$1"
 test -n "${CMD}" || exit 1
 
 case "${CMD}" in
-    exec|veriexec|destroy-jail|remove|run-cmd|login|print-display|appsiz) ;;
+    appsiz|attr|destroy-jail|exec|login|print-display|remove|run-cmd|veriexec) ;;
     env) env; exit 0 ;;
     *) exit 1 ;;
 esac

@@ -3,6 +3,11 @@ NAME
      AppJails
 
 SYNOPSIS
+     x11appjail attr check attr
+     x11appjail attr cat attr
+     x11appjail attr ls
+     x11appjail attr put attr [value]
+     x11appjail attr rm attr
      x11appjail build [-O] [-A algo] [-a arch] [-C directory] [-f directory]
 		[-i image] [-o filename] [-s vendorid:public_key] [-t tag]
 		[-v version] directory
@@ -19,6 +24,11 @@ SYNOPSIS
      x11appjail service service appspec [args ...]
      x11appjail trust vendorid public_key
      x11appjail trusted
+     x11appjail sys-attr check attr [uid]
+     x11appjail sys-attr cat attr [uid]
+     x11appjail sys-attr ls [uid]
+     x11appjail sys-attr put attr value [uid]
+     x11appjail sys-attr rm attr [uid]
      x11appjail untrust vendorid
      x11appjail verify filename
      x11appjail version
@@ -38,6 +48,27 @@ DESCRIPTION
      also SECURITY CONSIDERATIONS.
 
      The options are as follows:
+
+     attr
+	  Manipulate user attributes.
+
+	  See ATTRIBUTES for details.
+
+	  The options are as follows:
+
+	   check attr
+	       Check if a user attribute exists.
+
+	   cat attr
+	       Display the content of a user attribute.
+
+	   ls  List all user attributes.
+
+	   put attr [value]
+	       Create or update a user attribute.
+
+	   rm attr
+	       Remove a user attribute.
 
      build [-O] [-A algo] [-a arch] [-C directory] [-f directory] [-i image]
 	  [-o filename] [-s vendorid:public_key] [-t tag] [-v version]
@@ -207,6 +238,30 @@ DESCRIPTION
 
 	  If you define a pattern (see grep(1)), you can shorten the list by
 	  searching by comment.
+
+     sys-attr
+	  Manipulate system attributes.
+
+	  See ATTRIBUTES for details.
+
+	  The options are as follows:
+
+	   check attr
+	       Check if a system attribute exists.
+
+	   cat attr [uid]
+	       Display the content of a system attribute.
+
+	   ls [uid]
+	       List all system attributes.
+
+	   put attr [value] [uid]
+	       Create or update a system attribute.
+
+	   rm attr [uid]
+	       Remove a system attribute.
+
+	  If uid is set, it works like attr, but with an arbitrary UID.
 
      untrust vendorid
 	  Removes an installed public key.
@@ -429,6 +484,39 @@ SERVICES
      task and to assume that any input from the jail is untrusted. See
      sprog(7) for relevant recommendations.
 
+ATTRIBUTES
+     Attributes are a small set of text files that allow both the system
+     operator and an unprivileged user to define data that an AppJail can use
+     to change its own behavior.
+
+     Attributes come in two forms: user attributes and system attributes.
+     System attributes are managed by the system operator or in other words,
+     by the root user. User attributes are managed by the unprivileged user
+     and are created per user.
+
+     For example, a system operator can create the system attribute
+     users.uid.perms, the content of which might be "enable_3d sound usb
+     webcam". An unprivileged user can create the user attributes
+     appname:profile.allow.enable_3d and appname:profile.allow.sound.
+     Subsequently, when executing an AppJail, devices become visible or remain
+     hidden depending on whether the user holds the corresponding permission
+     and has authorized those permissions for the jail being created.  In this
+     case, the hardware acceleration and sound devices will become visible,
+     provided the AppJail has incorporated the necessary logic to make them
+     visible.
+
+     Attributes are the recommended way to change an AppJail's behavior, but
+     this is entirely up to AppJail. Attributes don't define logic, only data.
+
+     Alternative ways to change the behavior of an AppJail are rc.conf(5)
+     together with sysrc(8) and the X11APPJAIL_* environment variables. The
+     problem with these approaches is that only the system operator can use
+     them, and in the case of the X11APPJAIL_* environment variables, they
+     apply to an installed AppJail and are static.
+
+     See IMPLEMENTATION NOTES for restrictions on the characters allowed in an
+     attribute name and the length of the content.
+
 IMPLEMENTATION NOTES
      The AppJail filename serves as the application name used to construct
      other strings, such as the name of the jail where the application will
@@ -444,7 +532,30 @@ IMPLEMENTATION NOTES
      is running this AppJail in portable mode, only the default profile can be
      used.
 
+     An attribute is a simple text file with a minimum of 0 bytes and a
+     maximum of 4096 bytes. And only one line is used.
+     Each attribute represents an exclusive lock by itself, so operations such
+     as removing it, updating the content, or reading its content are
+     performed step by step even in parallel. This is to avoid races. This is
+     why it is recommended to use attribute commands to manage attributes
+     instead of operating on them directly in /var/x11appjail/attr. An
+     attribute filename must conform to the following pattern:
+     "^[a-zA-Z0-9][a-zA-Z0-9_:.-]*$".
+     From the kernel's point of view, attributes are the exclusive property of
+     root, including user attributes, so unprivileged users can only use
+     attribute commands to manage attributes and cannot manage them directly.
+
 ENVIRONMENT
+     X11APPJAIL_*
+	 X11APPJAIL_* environment variables are preserved when installing the
+	 AppJail, but only for the root user. If doas.conf(5) has been
+	 correctly configured as specified in the UNPRIVILEGED USERS section,
+	 X11APPJAIL_* environment variables defined by unprivileged users will
+	 be ignored, as the environment is not inherited when switching to the
+	 root user.
+	 This poses a problem when running an AppJail in portable mode. See
+	 the ATTRIBUTES section for details on how to solve this.
+
      DISPLAY
 	 The X server to which Xephyr(1) will connect. See appjail-x11(1) for
 	 more information.
@@ -463,12 +574,14 @@ FILES
 	 Location of the vendors' public keys.
 
      /var/x11appjail/users
-	 Location of data directories used by users.
+	 Location of data directories used by users.  x11appjail will not
+	 create this directory or its subdirectories. It is the responsibility
+	 of the AppJails to create this directory and conventionally map the
+	 unprivileged user's UID and GID so that the user can access those
+	 files from the host.
 
-	 x11appjail will not create this directory or its subdirectories. It
-	 is the responsibility of the AppJails to create this directory and
-	 conventionally map the unprivileged user's UID and GID so that the
-	 user can access those files from the host.
+     /var/x11appjail/attr
+	 Location of attribute files.
 
      /var/run/x11appjail-cache
 	 Location of the directory used by the background process when AppJail
