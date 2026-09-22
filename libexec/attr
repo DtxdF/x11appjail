@@ -122,7 +122,7 @@ fi
     if [ "${OPERATION}" = "put" ]; then
         create_file "${ATTR_FILE}"
         
-        printf "%s" "${VALUE}" | head -n 1 | head -c 4096 >&9 || exit 1
+        printf "%s" "${VALUE}" | head -n 1 | head -c 4096 | tee "${ATTR_FILE}" > /dev/null || exit 1
     elif [ "${OPERATION}" = "cat" ]; then
         VALUE=`cat -- "${ATTR_FILE}" | head -n 1 | head -c 4096` || exit 1
 
