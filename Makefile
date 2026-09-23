@@ -7,7 +7,7 @@ PREFIX?=/usr/local
 MANDIR?=${PREFIX}/share/man
 LN?=ln -f
 
-X11APPJAIL_VERSION?=1.0.0
+X11APPJAIL_VERSION?=1.1.0
 
 all: install
 
