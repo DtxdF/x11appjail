@@ -17,6 +17,7 @@ if [ "${NETWORK_MODE}" = "inherit" ]; then
 elif [ "${NETWORK_MODE}" = "virtualnet" ]; then
     if [ "${APPJAIL_SELF_CONTAINED}" != 0 ]; then
         echo "ERROR: Virtual Networks requires AppJail to be installed on the host."
+        exit 1
     fi
 
     if x11appjail sys-attr check network.virtualnet; then
