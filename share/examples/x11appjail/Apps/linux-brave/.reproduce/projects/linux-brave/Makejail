@@ -1,0 +1,24 @@
+OPTION start
+OPTION overwrite=force
+OPTION alias
+OPTION ip4_inherit
+OPTION ip6_inherit
+OPTION type=thick
+
+COPY usr
+
+SYSRC clear_tmp_X=NO
+
+PKG linux_base-rl9
+PKG linux-brave \
+    dbus \
+    xauth \
+    xrandr \
+    ratpoison \
+    xorg-fonts \
+    setxkbmap \
+    xdg-utils \
+    dunst
+PKG --clean
+CMD rm -rf /var/cache/pkg/*
+CMD rm -rf /var/db/pkg/repos/*

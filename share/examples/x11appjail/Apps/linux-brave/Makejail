@@ -1,0 +1,55 @@
+ARG puid
+ARG pgid
+
+OPTION start
+OPTION overwrite=force
+OPTION import+root=input:./image portable
+OPTION volume=data mountpoint:/noroot owner:${puid} group:${pgid}
+OPTION template=template.conf
+OPTION meta=x11appjail.exec.user:noroot
+OPTION x11
+OPTION label=load-kld:1
+OPTION label=load-kld.load-linux:linux
+OPTION label=load-kld.load-linux.module:linuxelf
+OPTION label=load-kld.load-linux64:linux64
+OPTION label=load-kld.load-linux64.module:linux64elf
+OPTION label=load-kld.load-pty:pty
+OPTION label=load-kld.load-fdescfs:fdescfs
+OPTION label=load-kld.load-linprocfs:linprocfs
+OPTION label=load-kld.load-linsysfs:linsysfs
+OPTION label=sysctl:1
+OPTION label=sysctl.elf64-fallback-brand:kern.elf64.fallback_brand=3
+OPTION label=sysctl.elf32-fallback-brand:kern.elf32.fallback_brand=3
+
+CMD if [ -d "/widevine" ]; then \
+        install -d -m 755 /usr/local/lib; \
+        cp -a /widevine/opt/google/chrome/WidevineCdm /usr/local/lib; \
+    fi
+
+CMD if [ -d "/compat/linux/system-fonts" ]; then \
+        unlink /compat/linux/etc/fonts; \
+        cp -a /usr/local/etc/fonts /compat/linux/etc/fonts; \
+        { \
+            echo -e '<?xml version="1.0"?>'; \
+            echo -e '<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">'; \
+            echo -e '<fontconfig>'; \
+            echo -e '  <dir>/system-fonts</dir>'; \
+            echo -e '</fontconfig>'; \
+        } > /compat/linux/etc/fonts/conf.d/51-x11appjail.conf; \
+        chroot /compat/linux fc-cache -f; \
+    fi
+
+CMD pw groupadd -n noroot -g "${pgid}" && \
+    pw useradd -n noroot -d /noroot -u "${puid}" -g "${pgid}" && \
+    mkdir -p /noroot && \
+    chown -R noroot:noroot /noroot
+
+# Without devices, this is useless.
+CMD pw groupmod -n video -m noroot
+CMD pw groupadd -n webcamd -g 145 -M noroot
+
+SERVICE dbus enable
+SERVICE dbus start
+
+SERVICE linux enable
+SERVICE linux start

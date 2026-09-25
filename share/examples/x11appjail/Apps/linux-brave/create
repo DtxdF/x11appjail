@@ -1,0 +1,230 @@
+#!/bin/sh
+
+set -e -o pipefail
+
+PREFIX=`x11appjail prefix`
+
+if [ ! -x "${PREFIX}/etc/appjail/hooks/pre.d/load-kld.sh" ]; then
+    echo "ERROR: This AppJail requires load-kld.sh hook."
+    exit 1
+fi
+
+if [ ! -x "${PREFIX}/etc/appjail/hooks/pre.d/sysctl.sh" ]; then
+    echo "ERROR: This AppJail requires sysctl.sh hook."
+    exit 1
+fi
+
+if x11appjail sys-attr check "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.network.mode"; then
+    NETWORK_MODE=`x11appjail sys-attr cat "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.network.mode"`
+elif x11appjail sys-attr check network.mode; then
+    NETWORK_MODE=`x11appjail sys-attr cat network.mode`
+fi
+
+NETWORK_MODE="${NETWORK_MODE:-none}"
+
+set --
+set -- "$@" -j "${X11APPJAIL_JAIL}"
+set -- "$@" -f "${X11APPJAIL_WORKDIR}/Makejail"
+
+if [ "${NETWORK_MODE}" = "inherit" ]; then
+    set -- "$@" -o alias -o ip4_inherit -o ip6_inherit
+elif [ "${NETWORK_MODE}" = "virtualnet" ]; then
+    if [ "${APPJAIL_SELF_CONTAINED}" != 0 ]; then
+        echo "ERROR: Virtual Networks requires AppJail to be installed on the host."
+        exit 1
+    fi
+
+    if x11appjail sys-attr check network.virtualnet; then
+        VIRTUALNET=`x11appjail sys-attr cat network.virtualnet`
+    fi
+
+    set -- "$@" -o virtualnet="${VIRTUALNET}:<random> default" -o nat
+else
+    if [ "${NETWORK_MODE}" != "none" ]; then
+        echo "WARNING: invalid network mode '${NETWORK_MODE}', falling back to 'none'" >&2
+    fi
+    set -- "$@" -o alias -o ip4_disable -o ip6_disable
+fi
+
+if [ "${NETWORK_MODE}" = "virtualnet" ]; then
+    SECGRP_TABLES=
+
+    if x11appjail sys-attr check network.security-group.tables; then
+        SECGRP_TABLES=`x11appjail sys-attr cat network.security-group.tables`
+    fi
+
+    if [ -n "${SECGRP_TABLES}" ]; then
+        set -- "$@" -o label="security-group:1"
+
+        for SECGRP_TABLE in ${SECGRP_TABLES}; do
+            set -- "$@" -o label="security-group.tables.${SECGRP_TABLE}:${SECGRP_TABLE}"
+        done
+    fi
+fi
+
+set -- "$@" -o mount_devfs
+set -- "$@" -o device='include $devfsrules_hide_all'
+set -- "$@" -o device='include $devfsrules_unhide_basic'
+set -- "$@" -o device='include $devfsrules_unhide_login'
+set -- "$@" -o device='path shm unhide'
+set -- "$@" -o device="path 'shm/*' unhide"
+
+ENABLE_3D_ALREADY=false
+WEBCAM_ALREADY=false
+USB_ALREADY=false
+SOUND_ALREADY=false
+
+if x11appjail sys-attr check users.${X11APPJAIL_UID}.perms; then
+    PERMS=`x11appjail sys-attr cat users.${X11APPJAIL_UID}.perms`
+
+    for PERM in ${PERMS}; do
+        if [ "${PERM}" = "enable_3d" ]; then
+            if ${ENABLE_3D_ALREADY}; then
+                continue
+            fi
+
+            PERM_ATTR="${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.allow.enable_3d"
+
+            if ! x11appjail sys-attr check "${PERM_ATTR}" "${X11APPJAIL_UID}"; then
+                continue
+            fi
+
+            set -- "$@" -o device="path 'dri' unhide"
+            set -- "$@" -o device="path 'dri/*' unhide"
+            set -- "$@" -o device="path 'drm' unhide"
+            set -- "$@" -o device="path 'drm/*' unhide"
+            set -- "$@" -o device="path 'pci' unhide"
+            set -- "$@" -o device="path 'nvidia*' unhide"
+
+            ENABLE_3D_ALREADY=true
+        elif [ "${PERM}" = "webcam" ]; then
+            if ${WEBCAM_ALREADY}; then
+                continue
+            fi
+
+            PERM_ATTR="${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.allow.webcam"
+
+            if ! x11appjail sys-attr check "${PERM_ATTR}" "${X11APPJAIL_UID}"; then
+                continue
+            fi
+
+            set -- "$@" -o device="path 'cuse*' unhide"
+            set -- "$@" -o device="path 'video*' unhide"
+
+            WEBCAM_ALREADY=false
+        elif [ "${PERM}" = "usb" ]; then
+            if ${USB_ALREADY}; then
+                continue
+            fi
+
+            PERM_ATTR="${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.allow.usb"
+
+            if ! x11appjail sys-attr check "${PERM_ATTR}" "${X11APPJAIL_UID}"; then
+                continue
+            fi
+
+            set -- "$@" -o device="path usb unhide"
+            set -- "$@" -o device="path 'usb/*' unhide"
+
+            USB_ALREADY=false
+        elif [ "${PERM}" = "sound" ]; then
+            if ${SOUND_ALREADY}; then
+                continue
+            fi
+
+            PERM_ATTR="${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.allow.sound"
+
+            if ! x11appjail sys-attr check "${PERM_ATTR}" "${X11APPJAIL_UID}"; then
+                continue
+            fi
+
+            set -- "$@" -o device="path sndstat unhide"
+            set -- "$@" -o device="path mixer unhide"
+            set -- "$@" -o device="path 'mixer*' unhide"
+            set -- "$@" -o device="path dsp unhide"
+            set -- "$@" -o device="path 'dsp*' unhide"
+            set -- "$@" -o device="path speaker unhide"
+            set -- "$@" -o device="path 'speaker*' unhide"
+
+            SOUND_ALREADY=false
+        fi
+    done
+fi
+
+if [ -n "${X11APPJAIL_EPHEMERAL}" ] || \
+        x11appjail sys-attr check "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.jail.ephemeral" "${X11APPJAIL_UID}"; then
+    set -- "$@" -o ephemeral
+fi
+
+if x11appjail sys-attr check "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.labels"; then
+    LABELS=`x11appjail sys-attr cat "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.labels"`
+
+    for LABEL in ${LABELS}; do
+        if ! x11appjail sys-attr check "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.labels.${LABEL}"; then
+            continue
+        fi
+
+        VALUE=`x11appjail sys-attr cat "${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.labels.${LABEL}"`
+
+        set -- "$@" -o label="${LABEL}:${VALUE}"
+    done
+fi
+
+if x11appjail sys-attr check mount.system-fonts; then
+    FONTSDIR="${PREFIX}/share/fonts"
+
+    if [ -d "${FONTSDIR}" ]; then
+        set -- "$@" -o fstab="\"${FONTSDIR}\" /compat/linux/system-fonts nullfs ro"
+    fi
+fi
+
+if x11appjail sys-attr check widevine.accept.license; then
+    CHROME_VERSION="152.0.7977.75-1"
+    LINUX_ARCH="amd64"
+    DISTFILE="google-chrome-stable_${CHROME_VERSION}_amd64.deb"
+    ROOTDIR="/var/cache/x11appjail/widevine"
+    DATADIR="${ROOTDIR}/d"
+    TEMPDIR="${ROOTDIR}/t"
+
+    if [ ! -f "${ROOTDIR}/.${DISTFILE}.done" ]; then
+        if [ ! -d "${ROOTDIR}" ]; then
+            install -d -m 755 "${ROOTDIR}"
+        fi
+
+        (
+            lockf 9
+
+            fetch -Rpm -o "${ROOTDIR}/${DISTFILE}" \
+                "https://dl.google.com/linux/deb/pool/main/g/google-chrome-stable/${DISTFILE}"
+
+            if [ -d "${TEMPDIR}" ]; then
+                rm -rf "${TEMPDIR}"
+            fi
+
+            install -d -m 755 "${TEMPDIR}"
+
+            tar -C "${TEMPDIR}" -xf "${ROOTDIR}/${DISTFILE}"
+
+            if [ ! -d "${DATADIR}" ]; then
+                install -d -m 755 "${DATADIR}"
+            fi
+
+            tar -C "${DATADIR}" -xf "${TEMPDIR}/data.tar.xz" ./opt/google/chrome/WidevineCdm
+
+            rm -rf "${TEMPDIR}"
+
+            rm -f "${DATADIR}/opt/google/chrome/WidevineCdm/LICENSE"
+
+            touch "${ROOTDIR}/.${DISTFILE}.done"
+        ) 9> "${ROOTDIR}/lock"
+        exec 9>&-
+    fi
+
+    set -- "$@" -o fstab="\"${DATADIR}\" /widevine nullfs ro"
+fi
+
+mkdir -p -m 0755 -- "${X11APPJAIL_USERDIR}"
+set -- "$@" -o fstab="${X11APPJAIL_USERDIR} data <volumefs>"
+
+exec "${APPJAIL}" makejail "$@" -- \
+    --puid "${X11APPJAIL_UID}" --pgid "${X11APPJAIL_GID}"
