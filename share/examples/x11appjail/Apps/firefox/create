@@ -62,13 +62,16 @@ if ${ENABLE_3D_ALREADY}; then
     set -- "$@" -o device="path 'drm/*' unhide"
     set -- "$@" -o device="path 'pci' unhide"
     set -- "$@" -o device="path 'nvidia*' unhide"
-elif ${WEBCAM_ALREADY}; then
+fi
+if ${WEBCAM_ALREADY}; then
     set -- "$@" -o device="path 'cuse*' unhide"
     set -- "$@" -o device="path 'video*' unhide"
-elif ${USB_ALREADY}; then
+fi
+if ${USB_ALREADY}; then
     set -- "$@" -o device="path usb unhide"
     set -- "$@" -o device="path 'usb/*' unhide"
-elif ${SOUND_ALREADY}; then
+fi
+if ${SOUND_ALREADY}; then
     set -- "$@" -o device="path sndstat unhide"
     set -- "$@" -o device="path mixer unhide"
     set -- "$@" -o device="path 'mixer*' unhide"

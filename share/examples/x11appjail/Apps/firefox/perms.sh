@@ -32,7 +32,7 @@ if x11appjail sys-attr check users.${X11APPJAIL_UID}.perms; then
                 continue
             fi
 
-            WEBCAM_ALREADY=false
+            WEBCAM_ALREADY=true
         elif [ "${PERM}" = "usb" ]; then
             if ${USB_ALREADY}; then
                 continue
@@ -44,7 +44,7 @@ if x11appjail sys-attr check users.${X11APPJAIL_UID}.perms; then
                 continue
             fi
 
-            USB_ALREADY=false
+            USB_ALREADY=true
         elif [ "${PERM}" = "sound" ]; then
             if ${SOUND_ALREADY}; then
                 continue
@@ -56,7 +56,7 @@ if x11appjail sys-attr check users.${X11APPJAIL_UID}.perms; then
                 continue
             fi
 
-            SOUND_ALREADY=false
+            SOUND_ALREADY=true
         fi
     done
 fi
