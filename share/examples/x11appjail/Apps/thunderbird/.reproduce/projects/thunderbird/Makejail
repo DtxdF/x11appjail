@@ -19,7 +19,8 @@ PKG thunderbird \
     mesa-libs \
     setxkbmap \
     xdg-utils \
-    dunst
+    dunst \
+    virtualgl
 PKG --clean
 CMD rm -rf /var/cache/pkg/*
 CMD rm -rf /var/db/pkg/repos/*

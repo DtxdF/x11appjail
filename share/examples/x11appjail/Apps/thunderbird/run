@@ -1,9 +1,29 @@
 #!/bin/sh
 
+set -e -o pipefail
+
 JEXEC="${X11APPJAIL_BASEDIR}/usr/local/libexec/appjail/jexec/jexec"
 
-exec "${JEXEC}" -l \
-    -U noroot \
-    -e DISPLAY="${X11APPJAIL_DISPLAY}" \
-    "${X11APPJAIL_JAIL}" \
-    thunderbird "$@"
+. "${X11APPJAIL_WORKDIR}/perms.sh"
+
+if ${ENABLE_3D_ALREADY}; then
+    VGL_DISPLAY="egl"
+    ATTR="${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.virtualgl.display"
+
+    if x11appjail sys-attr check "${ATTR}" "${X11APPJAIL_UID}"; then
+        VGL_DISPLAY=`x11appjail sys-attr cat "${ATTR}" "${X11APPJAIL_UID}"`
+    fi
+
+    exec "${JEXEC}" -l \
+        -U noroot \
+        -e DISPLAY="${X11APPJAIL_DISPLAY}" \
+        "${X11APPJAIL_JAIL}" \
+        /usr/local/VirtualGL/bin/vglrun -d "${VGL_DISPLAY}" \
+        thunderbird "$@"
+else
+    exec "${JEXEC}" -l \
+        -U noroot \
+        -e DISPLAY="${X11APPJAIL_DISPLAY}" \
+        "${X11APPJAIL_JAIL}" \
+        thunderbird "$@"
+fi

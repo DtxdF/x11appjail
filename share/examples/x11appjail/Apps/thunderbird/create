@@ -53,86 +53,24 @@ set -- "$@" -o device='include $devfsrules_hide_all'
 set -- "$@" -o device='include $devfsrules_unhide_basic'
 set -- "$@" -o device='include $devfsrules_unhide_login'
 
-ENABLE_3D_ALREADY=false
-WEBCAM_ALREADY=false
-USB_ALREADY=false
-SOUND_ALREADY=false
+. "${X11APPJAIL_WORKDIR}/perms.sh"
 
-if x11appjail sys-attr check users.${X11APPJAIL_UID}.perms; then
-    PERMS=`x11appjail sys-attr cat users.${X11APPJAIL_UID}.perms`
-
-    for PERM in ${PERMS}; do
-        if [ "${PERM}" = "enable_3d" ]; then
-            if ${ENABLE_3D_ALREADY}; then
-                continue
-            fi
-
-            PERM_ATTR="${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.allow.enable_3d"
-
-            if ! x11appjail sys-attr check "${PERM_ATTR}" "${X11APPJAIL_UID}"; then
-                continue
-            fi
-
-            set -- "$@" -o device="path 'dri' unhide"
-            set -- "$@" -o device="path 'dri/*' unhide"
-            set -- "$@" -o device="path 'drm' unhide"
-            set -- "$@" -o device="path 'drm/*' unhide"
-            set -- "$@" -o device="path 'pci' unhide"
-            set -- "$@" -o device="path 'nvidia*' unhide"
-
-            ENABLE_3D_ALREADY=true
-        elif [ "${PERM}" = "webcam" ]; then
-            if ${WEBCAM_ALREADY}; then
-                continue
-            fi
-
-            PERM_ATTR="${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.allow.webcam"
-
-            if ! x11appjail sys-attr check "${PERM_ATTR}" "${X11APPJAIL_UID}"; then
-                continue
-            fi
-
-            set -- "$@" -o device="path 'cuse*' unhide"
-            set -- "$@" -o device="path 'video*' unhide"
-
-            WEBCAM_ALREADY=false
-        elif [ "${PERM}" = "usb" ]; then
-            if ${USB_ALREADY}; then
-                continue
-            fi
-
-            PERM_ATTR="${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.allow.usb"
-
-            if ! x11appjail sys-attr check "${PERM_ATTR}" "${X11APPJAIL_UID}"; then
-                continue
-            fi
-
-            set -- "$@" -o device="path usb unhide"
-            set -- "$@" -o device="path 'usb/*' unhide"
-
-            USB_ALREADY=false
-        elif [ "${PERM}" = "sound" ]; then
-            if ${SOUND_ALREADY}; then
-                continue
-            fi
-
-            PERM_ATTR="${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.allow.sound"
-
-            if ! x11appjail sys-attr check "${PERM_ATTR}" "${X11APPJAIL_UID}"; then
-                continue
-            fi
-
-            set -- "$@" -o device="path sndstat unhide"
-            set -- "$@" -o device="path mixer unhide"
-            set -- "$@" -o device="path 'mixer*' unhide"
-            set -- "$@" -o device="path dsp unhide"
-            set -- "$@" -o device="path 'dsp*' unhide"
-            set -- "$@" -o device="path speaker unhide"
-            set -- "$@" -o device="path 'speaker*' unhide"
-
-            SOUND_ALREADY=false
-        fi
-    done
+if ${ENABLE_3D_ALREADY}; then
+    set -- "$@" -o device="path 'dri' unhide"
+    set -- "$@" -o device="path 'dri/*' unhide"
+    set -- "$@" -o device="path 'drm' unhide"
+    set -- "$@" -o device="path 'drm/*' unhide"
+    set -- "$@" -o device="path 'pci' unhide"
+    set -- "$@" -o device="path 'nvidia*' unhide"
+fi
+if ${SOUND_ALREADY}; then
+    set -- "$@" -o device="path sndstat unhide"
+    set -- "$@" -o device="path mixer unhide"
+    set -- "$@" -o device="path 'mixer*' unhide"
+    set -- "$@" -o device="path dsp unhide"
+    set -- "$@" -o device="path 'dsp*' unhide"
+    set -- "$@" -o device="path speaker unhide"
+    set -- "$@" -o device="path 'speaker*' unhide"
 fi
 
 if [ -n "${X11APPJAIL_EPHEMERAL}" ] || \

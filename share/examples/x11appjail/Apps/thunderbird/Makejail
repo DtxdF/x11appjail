@@ -25,5 +25,8 @@ CMD pw groupadd -n noroot -g "${pgid}" && \
     mkdir -p /noroot && \
     chown -R noroot:noroot /noroot
 
+# Without devices, this is useless.
+CMD pw groupmod -n video -m noroot
+
 SERVICE dbus enable
 SERVICE dbus start
