@@ -1,0 +1,23 @@
+# https://www.freedesktop.org/wiki/Specifications/desktop-entry-spec/
+# SPDX-FileCopyrightText: 2019-2022 Badwolf Authors <https://hacktivis.me/projects/badwolf>
+# SPDX-License-Identifier: BSD-3-Clause
+[Desktop Entry]
+Version=1.1
+Type=Application
+Categories=Network;WebBrowser
+Comment=A minimalist and privacy-oriented web browser
+Comment[fr]=Un navigateur web minimaliste et orienté vers le respect de la vie privée
+Comment[sr]=Минималистички веб читач посвећен приватности
+Comment[tr]=Sadelik ve gizlilik odaklı web tarayıcısı
+Exec=%%EXEC%% %U
+GenericName=Web Browser
+GenericName[fr]=Navigateur Web
+GenericName[sr]=Веб читач
+GenericName[tr]=Web Tarayıcısı
+Icon=%%ICON%%
+Keywords=Internet;WWW;Browser;Web;WebKit;WebKitGTK
+Keywords[fr]=Internet;WWW;Browser;Web;Surfer;Navigateur;WebKit;WebKitGTK
+Keywords[sr]=Internet;WWW;Browser;Web;WebKit;WebKitGTK;Интернет;Веб;Читач
+Keywords[tr]=Internet;WWW;Browser;Web;WebKit;WebKitGTK;İnternet;Tarayıcı;
+MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;x-scheme-handler/man
+Name=Badwolf (AppJail:%%PROFILE%%)
