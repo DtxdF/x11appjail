@@ -352,3 +352,28 @@ kill_wait()
     fi
 }
 
+
+calc_checksum()
+{
+    local algo
+    algo=`sysrc -ni x11appjail_checksum_algo`
+
+    if [ -z "${algo}" ]; then
+        if which -s b3sum; then
+            algo="blake3"
+        else
+            algo="sha256"
+        fi
+    fi
+
+    case "${algo}" in
+        sha256|blake3) ;;
+        *) err "${algo}: invalid checksum algorithm."
+    esac
+
+    if [ "${algo}" = "sha256" ]; then
+        sha256 -q || exit $?
+    elif [ "${algo}" = "blake3" ]; then
+        b3sum --no-names || exit $?
+    fi
+}

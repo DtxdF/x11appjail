@@ -434,7 +434,7 @@ start_cache()
         fi
 
         if [ -z "${uniqid}" ]; then
-            uniqid=`sha256 -q -- "${APPSCRIPT_SCRIPT:-/dev/null}"` || exit 1
+            uniqid=`calc_checksum < "${APPSCRIPT_SCRIPT:-/dev/null}"` || exit 1
         fi
 
         export APPSCRIPT_SCRIPT_CHECKSUM="${uniqid}"
@@ -545,7 +545,7 @@ x11appjail_run()
         if [ -n "${APPSCRIPT_SCRIPT_CHECKSUM}" ]; then
             checksum="${APPSCRIPT_SCRIPT_CHECKSUM}"
         else
-            checksum=`sha256 -q -- "${APPSCRIPT_SCRIPT:-/dev/null}"` || exit 1
+            checksum=`calc_checksum < "${APPSCRIPT_SCRIPT:-/dev/null}"` || exit 1
         fi
 
         while :; do

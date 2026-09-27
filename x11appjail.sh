@@ -540,9 +540,10 @@ build()
 {
     local _o
     local opt_optimized=false
-    local algo="zstd"
+    local compress_algo="zstd"
     local arch
     arch=`uname -p` || exit ${EX_SOFTWARE}
+    local checksum_algo="sha256"
     local fingerprints_directory="/usr/share/keys/pkg"
     local image=
     local out=
@@ -551,19 +552,22 @@ build()
     local version
     version=`freebsd-version | grep -Eo '^[0-9]+'` || exit ${EX_SOFTWARE}
 
-    while getopts ":OA:a:C:f:i:o:s:t:v:" _o; do
+    while getopts ":OA:a:C:c:f:i:o:s:t:v:" _o; do
         case "${_o}" in
             O)
                 opt_optimized=true
                 ;;
             A)
-                algo="${OPTARG}"
+                compress_algo="${OPTARG}"
                 ;;
             a)
                 arch="${OPTARG}"
                 ;;
             C)
                 CACHEDIR="${OPTARG}"
+                ;;
+            c)
+                checksum_algo="${OPTARG}"
                 ;;
             f)
                 fingerprints_directory="${OPTARG}"
@@ -717,11 +721,11 @@ EOF
     info "Creating AppScript"
     set --
     if [ -n "${vendorid}" -a -n "${sign_key}" ]; then
-        set -- -I "${vendorid}" -i "${sign_key}"
+        set -- -I "${vendorid}" -i "${sign_key}" -A "${checksum_algo}"
     fi
     # signify(1) may prompt for a passphrase.
-    info "appscript" "-MM" "$@" "-a" "${arch}" "-c" "${algo}" "-o" "${out}" "--" "${BUILDDIR}"
-    appscript -MM "$@" -a "${arch}" -c "${algo}" -o "${out}" -- "${BUILDDIR}" || exit ${EX_SOFTWARE}
+    info "appscript" "-MM" "$@" "-a" "${arch}" "-c" "${compress_algo}" "-o" "${out}" "--" "${BUILDDIR}"
+    appscript -MM "$@" -a "${arch}" -c "${compress_algo}" -o "${out}" -- "${BUILDDIR}" || exit ${EX_SOFTWARE}
 
     info "Done."
 
@@ -1015,9 +1019,9 @@ usage: x11appjail attr check <attr>
        x11appjail attr ls
        x11appjail attr put <attr> [<value>]
        x11appjail attr rm <attr>
-       x11appjail build [-O] [-A <algo>] [-a <arch>] [-C <directory>] [-f <directory>]
-               [-i <image>] [-o <filename>] [-s <vendorid>:<public_key>] [-t <tag>]
-               [-v <version>] <directory>
+       x11appjail build [-O] [-A <algo>] [-a <arch>] [-C <directory>] [-c <algo>]
+               [-f <directory>] [-i <image>] [-o <filename>]
+               [-s <vendorid>:<public_key>] [-t <tag>] [-v <version>] <directory>
        x11appjail clipboard [-O] [-s <selection>] <appspec1> [<appspec2>]
        x11appjail destroy-jail <appspec>
        x11appjail init <pathname>

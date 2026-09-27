@@ -8,9 +8,9 @@ SYNOPSIS
      x11appjail attr ls
      x11appjail attr put attr [value]
      x11appjail attr rm attr
-     x11appjail build [-O] [-A algo] [-a arch] [-C directory] [-f directory]
-		[-i image] [-o filename] [-s vendorid:public_key] [-t tag]
-		[-v version] directory
+     x11appjail build [-O] [-A algo] [-a arch] [-C directory] [-c algo]
+		[-f directory] [-i image] [-o filename]
+		[-s vendorid:public_key] [-t tag] [-v version] directory
      x11appjail clipboard [-O] [-s selection] appspec1 [appspec2]
      x11appjail destroy-jail appspec
      x11appjail init pathname
@@ -70,9 +70,9 @@ DESCRIPTION
 	   rm attr
 	       Remove a user attribute.
 
-     build [-O] [-A algo] [-a arch] [-C directory] [-f directory] [-i image]
-	  [-o filename] [-s vendorid:public_key] [-t tag] [-v version]
-	  directory
+     build [-O] [-A algo] [-a arch] [-C directory] [-c algo] [-f directory]
+	  [-i image] [-o filename] [-s vendorid:public_key] [-t tag] [-v
+	  version] directory
 	  Create an AppJail.
 
 	  This command creates an executable using appscript(1) that contains
@@ -94,6 +94,8 @@ DESCRIPTION
 	  -A algo
 	      Compression algorithm to be used to compress directory.
 
+	      See the -c flag in appscript(1) for details.
+
 	  -a arch
 	      Specifies an architecture different from that of the host.
 
@@ -104,6 +106,12 @@ DESCRIPTION
 	      A directory used to store the packages that pkg(8) will
 	      download. This could speed up subsequent builds if the -O flag
 	      isn't set.
+
+	  -c algo
+	      Checksum algorithm to be used when signing the binary. Default
+	      is sha256.
+
+	      See the -A flag in appscript(1) for details.
 
 	  -f directory
 	      Path containing known signatures for the repository, which
@@ -338,10 +346,9 @@ PORTABLE MODE
      1.   Retrieves the vendor ID embedded in the executable itself.
      2.   The vendor ID is hashed using SHA-256, and the public key is
 	  expected to be /var/x11appjail/keys/sha256(<vendorid>).pub.
-     3.   To avoid a TOCTOU race, the executable's SHA-256 checksum is
-	  calculated, and the file is then copied to a deterministic temporary
-	  location:
-	  /tmp/.x11appjail-apps/sha256(<pathname>.AppJail)/<filename>.AppJail.
+     3.   To avoid a TOCTOU race, the executable's checksum is calculated, and
+	  the file is then copied to a deterministic temporary location:
+	  /tmp/.x11appjail-apps/<checksum-algo>(<pathname>.AppJail)/<filename>.AppJail.
 
 	  The filename is safe to preserve, as not all characters are
 	  permitted. See the IMPLEMENTATION NOTES for further details.
@@ -353,7 +360,7 @@ PORTABLE MODE
      ./<filename>.AppJail'. The first option takes longer and results in
      higher disk activity and CPU usage, as the payload must be extracted
      twice: first by the unprivileged user and subsequently by the root user
-     once verification has successfully completed. The only task a user
+     once verification has successfully completed.  The only task a user
      process needs to perform when executing `./<filename>.AppJail' is to
      invoke veriexec, and that is precisely what `x11appjail run
      ./<filename>.AppJail' does.
@@ -379,8 +386,8 @@ CACHING
 	  <timestamp> is a combination of the executable's absolute path,
 	  ctime, mtime, and size in bytes.
      2.   Following successful verification, a dummy file is stored in
-	  /tmp/.x11appjail-apps/sha256(<pathname>)/ to serve as an indicator
-	  for future processes, making it unnecessary to call
+	  /tmp/.x11appjail-apps/<checksum-algo>(<pathname>)/ to serve as an
+	  indicator for future processes, making it unnecessary to call
 	  appscript-verify(1) again.
 
      Using the aforementioned techniques will save a considerable amount of
@@ -401,6 +408,30 @@ CACHING
 
      All of this happens implicitly, and the user does not need to do
      anything.
+
+HASHING
+     The hash algorithm is particularly important when running AppJails in
+     portable mode, as described in the PORTABLE MODE section. In the worst-
+     case scenario, when running an AppJail for the first time, it may be
+     necessary to calculate the checksum for operations such as CACHING;
+     sometimes, this calculation must be performed twice (by both the
+     unprivileged user and the root user) depending on how the AppJail is
+     executed.
+
+     blake3 is the preferred algorithm. If sysutils/b3sum is installed, it
+     will be automatically selected by default. If you prefer a battle-tested
+     algorithm that is FIPS-compliant, you can set x11appjail_checksum_algo to
+     sha256 in your rc.conf(5) file. Note that, unlike blake3, sha256 does not
+     support parallelization.
+
+     It is worth noting that this algorithm differs from the one used to sign
+     the binary. This algorithm is used for internal operations such as
+     veriexec, whereas the checksum algorithm used for signing is a concern of
+     appscript(1).
+
+     This slightly speeds up the initial execution time of an AppJail, but the
+     main bottleneck lies in I/O overhead. In subsequent executions, what
+     really improves performance is CACHING.
 
 INSTALLED APPJAILS
      This is the recommended way to run an AppJail: simply by installing it

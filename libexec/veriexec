@@ -123,7 +123,7 @@ if [ -f "${CHECKSUM_FILE}" ]; then
 fi
 
 if [ -z "${CHECKSUM}" ]; then
-    CHECKSUM=`sha256 -q -- "${APPSCRIPT_SCRIPT}"` || exit 1
+    CHECKSUM=`calc_checksum < "${APPSCRIPT_SCRIPT}"` || exit 1
 
     create_file "${CHECKSUM_FILE}.lock"
 
