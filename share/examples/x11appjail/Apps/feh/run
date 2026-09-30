@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+
+run_as()
+{
+    su-exec "${X11APPJAIL_UID}:${X11APPJAIL_GID}" "$@"
+}
+
+err()
+{
+    printf "###> %s\n" "$*" >&2
+}
+
+JEXEC="${X11APPJAIL_BASEDIR}/usr/local/libexec/appjail/jexec/jexec"
+
+FILE=
+IS_FILE=true
+
+if [ $# -gt 0 ]; then
+    FILE="${@: -1}"
+
+    case "${FILE}" in
+        file://*) FILE="${FILE#file://}" ;;
+        *://*) IS_FILE=false ;;
+    esac
+
+    if ${IS_FILE}; then
+        if run_as [ ! -e "${FILE}" ]; then
+            err "${FILE}: file not found or no read permission."
+            exit 1
+        fi
+
+        if run_as [ ! -f "${FILE}" ]; then
+            err "${FILE}: not a regular file."
+            exit 1
+        fi
+    fi
+
+    if ${IS_FILE}; then
+        set -- "${@:1:$#-1}" "-"
+    else
+        set -- "${@:1:$#-1}" "${FILE}"
+    fi
+fi
+
+if [ -n "${FILE}" ] && ${IS_FILE}; then
+    run_as cat -- "${FILE}" | "${JEXEC}" -l \
+        -U noroot \
+        -e DISPLAY="${X11APPJAIL_DISPLAY}" \
+        "${X11APPJAIL_JAIL}" \
+        feh "$@"
+    exit $?
+else
+    exec "${JEXEC}" -l \
+        -U noroot \
+        -e DISPLAY="${X11APPJAIL_DISPLAY}" \
+        "${X11APPJAIL_JAIL}" \
+        feh "$@"
+fi
