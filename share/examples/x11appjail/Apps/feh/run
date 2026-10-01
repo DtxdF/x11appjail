@@ -4,7 +4,8 @@ set -o pipefail
 
 run_as()
 {
-    su-exec "${X11APPJAIL_UID}:${X11APPJAIL_GID}" "$@"
+    HOME="${X11APPJAIL_HOMEDIR}" \
+        mdo -u "${X11APPJAIL_UID}" -g "${X11APPJAIL_GID}" -G "${X11APPJAIL_OGID}" -- "$@"
 }
 
 err()

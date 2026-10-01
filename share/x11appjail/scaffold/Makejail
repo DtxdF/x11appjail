@@ -7,7 +7,7 @@
 #
 
 #
-# A more interesting use of these arguments is when `su-exec` (inside the jail)
+# A more interesting use of these arguments is when `mdo` (inside the jail)
 # and an entrypoint.sh script are used, just as is done with OCI images.
 #
 ARG puid

@@ -16,6 +16,7 @@ export X11APPJAIL_BASEDIR="${SELF}"
 export X11APPJAIL_WORKDIR="${X11APPJAILDIR}"
 UID=
 GID=
+OGID=
 USER_HOMEDIR=
 USER_INFO=
 export XAUTHORITY=
@@ -103,6 +104,10 @@ main()
                 fi
 
                 export X11APPJAIL_UID="${UID}"
+
+                OGID=`id -G "${UID}" | tr ' ' ','` || exit 1
+
+                export X11APPJAIL_OGID="${OGID}"
                 
                 shift
                 ;;
@@ -569,8 +574,9 @@ x11appjail_run()
                     cookie=`openssl rand -hex 16` || exit 1
 
                     # user
-                    XAUTHORITY="${USER_XAUTHORITY}" su-exec ${UID}:${GID} \
-                        xauth add localhost:${x11_display} MIT-MAGIC-COOKIE-1 "${cookie}" || exit 1
+                    XAUTHORITY="${USER_XAUTHORITY}" HOME="${USER_HOMEDIR}" \
+                        mdo -u "${UID}" -g "${GID}" -G "${OGID}" \
+                            xauth add localhost:${x11_display} MIT-MAGIC-COOKIE-1 "${cookie}" || exit 1
                     # us
                     XAUTHORITY="${XAUTHORITY}" \
                         xauth add localhost:${x11_display} MIT-MAGIC-COOKIE-1 "${cookie}" || exit 1

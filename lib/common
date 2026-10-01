@@ -54,8 +54,8 @@ HANDLED_SIGNALS="SIGTERM SIGQUIT SIGINT SIGHUP"
 LAST_PID=
 
 # See x11appjail.sh:build() and install_dependencies()
-PACKAGES="su-exec-static xauth xdotool xlibre-ephyr xseticon xev git-tiny"
-DEPENDENCIES="su-exec xauth xdotool Xephyr xseticon xev git"
+PACKAGES="xauth xdotool xlibre-ephyr xseticon xev git-tiny"
+DEPENDENCIES="xauth xdotool Xephyr xseticon xev git"
 
 # See self_contained()
 APPJAIL=
@@ -76,8 +76,6 @@ install_dependencies()
             dependency="xlibre-ephyr"
         elif [ "${dependency}" = "git" ]; then
             dependency="git-tiny"
-        elif [ "${dependency}" = "su-exec" ]; then
-            dependency="su-exec-static"
         fi
 
         missing="${missing} ${dependency}"

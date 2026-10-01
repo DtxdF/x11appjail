@@ -34,6 +34,7 @@ test -n "${DOAS_USER}" || exit 1
 
 UID=`id -u "${DOAS_USER}"` || exit 1
 GID=`id -g "${DOAS_USER}"` || exit 1
+OGID=`id -G "${DOAS_USER}" | tr ' ' ','` || exit 1
 
 load_common()
 {
@@ -111,8 +112,8 @@ if [ -n "${FROM_APPSPEC}" -a -n "${FROM_FILE}" ]; then
         -j "x11appjail-${FROM_APPNAME}-${UID}_${FROM_PROFILE}" \
         -f "${FROM_FILE}" || exit 1
 else
-    su-exec "${UID}:${GID}" cat -- \
-        "${FROM_FILE}" || exit 1
+    mdo -u "${UID}" -g "${GID}" -G "${OGID}" \
+        cat -- "${FROM_FILE}" || exit 1
 fi |\
 if [ -n "${TO_APPSPEC}" -a -n "${TO_FILE}" ]; then
     jtransfer -w \
@@ -121,7 +122,8 @@ if [ -n "${TO_APPSPEC}" -a -n "${TO_FILE}" ]; then
         -j "x11appjail-${TO_APPNAME}-${UID}_${TO_PROFILE}" \
         -f "${TO_FILE}" || exit 1
 elif [ -n "${TO_FILE}" ]; then
-    su-exec "${UID}:${GID}" tee "${TO_FILE}" > /dev/null || exit 1
+    mdo -u "${UID}" -g "${GID}" -G "${GID}" \
+        tee "${TO_FILE}" > /dev/null || exit 1
 else
     cat -u || exit 1
 fi
