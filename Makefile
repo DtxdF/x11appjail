@@ -28,7 +28,7 @@ install:
 	${MKDIR} -m 755 "${DESTDIR}${PREFIX}/lib/x11appjail"
 	${INSTALL} -m 644 lib/common "${DESTDIR}${PREFIX}/lib/x11appjail/common"
 	${MKDIR} -m 755 "${DESTDIR}${PREFIX}/libexec/x11appjail"
-.for s in appsiz attr exec veriexec destroy-jail remove run-cmd print-display map-exec
+.for s in appsiz attr exec veriexec destroy-jail remove run-cmd transfer print-display map-exec
 	${INSTALL} -m 555 libexec/${s} "${DESTDIR}${PREFIX}/libexec/x11appjail/${s}"
 .endfor
 	${LN} "${DESTDIR}${PREFIX}/libexec/x11appjail/run-cmd" "${DESTDIR}${PREFIX}/libexec/x11appjail/login"

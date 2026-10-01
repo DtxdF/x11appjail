@@ -28,6 +28,13 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+set -o pipefail
+
+test -n "${DOAS_USER}" || exit 1
+
+UID=`id -u "${DOAS_USER}"` || exit 1
+GID=`id -g "${DOAS_USER}"` || exit 1
+
 load_common()
 {
     local _s
@@ -40,19 +47,81 @@ load_common()
     . "${LIBDIR}/common"
 }
 
-CMD="$1"
-
-test -n "${CMD}" || exit 1
-
-case "${CMD}" in
-    appsiz|attr|destroy-jail|exec|login|print-display|remove|run-cmd|transfer|veriexec) ;;
-    env) env; exit 0 ;;
-    *) exit 1 ;;
-esac
-
-shift
+check_appspec()
+{
+    printf "%s" "$1" | grep -qEe '^[^:]+:.*$'
+}
 
 load_common
-build_libexec
 
-exec "${LIBEXEC}/${CMD}" "$@"
+FILE_MODE="$1"
+
+test -n "${FILE_MODE}" || exit 1
+
+FROM="$2"
+
+test -n "${FROM}" || exit 1
+
+FROM_APPSPEC=
+FROM_FILE=
+FROM_APPNAME=
+FROM_PROFILE=
+
+if check_appspec "${FROM}"; then
+    FROM_APPSPEC=`printf "%s" "${FROM}" | cut -d: -f1` || exit 1
+    FROM_FILE=`printf "%s" "${FROM}" | cut -d: -f2-` || exit 1
+
+    build_appspec "${FROM_APPSPEC}"
+
+    FROM_APPNAME="${APPNAME}"
+    FROM_PROFILE="${PROFILE}"
+else
+    FROM_FILE="${FROM}"
+fi
+
+TO="$3"
+
+TO_APPSPEC=
+TO_FILE=
+TO_APPNAME=
+TO_PROFILE=
+
+if [ -n "${TO}" ]; then
+    if check_appspec "${TO}"; then
+        TO_APPSPEC=`printf "%s" "${TO}" | cut -d: -f1` || exit 1
+        TO_FILE=`printf "%s" "${TO}" | cut -d: -f2-` || exit 1
+
+        build_appspec "${TO_APPSPEC}"
+
+        TO_APPNAME="${APPNAME}"
+        TO_PROFILE="${PROFILE}"
+    else
+        TO_FILE="${TO}"
+    fi
+else
+    if [ -z "${FROM_APPSPEC}" ]; then
+        err "Source must be defined to continue."
+        exit 1
+    fi
+fi
+
+if [ -n "${FROM_APPSPEC}" -a -n "${FROM_FILE}" ]; then
+    jtransfer -r \
+        -u "${UID}:${GID}" \
+        -j "x11appjail-${FROM_APPNAME}-${UID}_${FROM_PROFILE}" \
+        -f "${FROM_FILE}" || exit 1
+else
+    su-exec "${UID}:${GID}" cat -- \
+        "${FROM_FILE}" || exit 1
+fi |\
+if [ -n "${TO_APPSPEC}" -a -n "${TO_FILE}" ]; then
+    jtransfer -w \
+        -m "${FILE_MODE}" \
+        -u "${UID}:${GID}" \
+        -j "x11appjail-${TO_APPNAME}-${UID}_${TO_PROFILE}" \
+        -f "${TO_FILE}" || exit 1
+elif [ -n "${TO_FILE}" ]; then
+    su-exec "${UID}:${GID}" tee "${TO_FILE}" > /dev/null || exit 1
+else
+    cat -u || exit 1
+fi

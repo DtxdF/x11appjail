@@ -22,6 +22,7 @@ SYNOPSIS
      x11appjail run appspec [args ...]
      x11appjail run-cmd appspec [args ...]
      x11appjail service service appspec [args ...]
+     x11appjail transfer [-mode] source [target]
      x11appjail trust vendorid public_key
      x11appjail trusted
      x11appjail sys-attr check attr [uid]
@@ -233,6 +234,18 @@ DESCRIPTION
 
      service service appspec [args ...]
 	  Configure a service in appspec. Refer to SERVICES for more details.
+
+     transfer [-m mode] source [target]
+	  Securely transfer a file using jtransfer(1).
+
+	  source and target can be defined as appspec:file or file. In the
+	  first case, the operation is performed using the file within
+	  appspec, whereas in the second, it is performed from the host. If
+	  target is not specified, standard output is used.  source must be
+	  specified in the appspec:file format only if target is not
+	  specified.
+
+	  File creation mode is set using the -m option.
 
      trust vendorid public_key
 	  Trust a vendor by installing its public key. This will allow
@@ -644,8 +657,8 @@ EXIT STATUS
 
 SEE ALSO
      appjail(1) appjail-image(1) appjail-x11(1) appscript(1)
-     appscript-verify(1) doas(1) reproduce(1) signify(1) xclipsync(1)
-     sysexits(3) x11appjail-spec(5)
+     appscript-verify(1) doas(1) reproduce(1) signify(1) transfer(1)
+     xclipsync(1) sysexits(3) x11appjail-spec(5)
 
 AUTHORS
      Jesus Daniel Colmenares Oviedo <DtxdF@disroot.org>

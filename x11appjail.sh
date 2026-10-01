@@ -48,7 +48,7 @@ main()
     local cmd="$1"
 
     case "${cmd}" in
-        attr|clipboard|destroy-jail|init|list|login|prefix|print-display|run|run-cmd|service|trusted|verify) ;;
+        attr|clipboard|destroy-jail|init|list|login|prefix|print-display|run|run-cmd|service|transfer|trusted|verify) ;;
         version) version; exit 0 ;;
         build) ;&
         trust) ;&
@@ -369,6 +369,37 @@ verify()
     fi
 
     exec appscript-verify -p "${keyfile}" -- "${file}"
+}
+
+transfer()
+{
+    local _o
+    local file_mode="0640"
+    local source= target=
+
+    while getopts ":m:" _o; do
+        case "${_o}" in
+            m)
+                file_mode="${OPTARG}"
+                ;;
+            *)
+                usage
+                exit ${EX_USAGE}
+                ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
+    source="$1"; target="$2"
+
+    if [ -z "${source}" ]; then
+        usage
+        exit ${EX_USAGE}
+    fi
+
+    build_libexec
+
+    exec doas "${LIBEXEC}/map-exec" "transfer" "${file_mode}" "${source}" "${target}"
 }
 
 trusted()
@@ -1033,6 +1064,7 @@ usage: x11appjail attr check <attr>
        x11appjail run <appspec> [<args> ...]
        x11appjail run-cmd <appspec> [<args> ...]
        x11appjail service <service> <appspec> [<args> ...]
+       x11appjail transfer [-m <mode>] <source> [<target>]
        x11appjail trust <vendorid> <public_key>
        x11appjail trusted
        x11appjail sys-attr check <attr> [<uid>]
