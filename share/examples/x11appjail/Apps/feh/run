@@ -16,17 +16,18 @@ err()
 JEXEC="${X11APPJAIL_BASEDIR}/usr/local/libexec/appjail/jexec/jexec"
 
 FILE=
-IS_FILE=true
+IS_LOCAL=true
 
 if [ $# -gt 0 ]; then
     FILE="${@: -1}"
 
     case "${FILE}" in
         file://*) FILE="${FILE#file://}" ;;
-        *://*) IS_FILE=false ;;
+        jail://*) FILE="${FILE#jail://}"; IS_LOCAL=false ;;
+        *://*) IS_LOCAL=false ;;
     esac
 
-    if ${IS_FILE}; then
+    if ${IS_LOCAL}; then
         if run_as [ ! -e "${FILE}" ]; then
             err "${FILE}: file not found or no read permission."
             exit 1
@@ -38,14 +39,14 @@ if [ $# -gt 0 ]; then
         fi
     fi
 
-    if ${IS_FILE}; then
+    if ${IS_LOCAL}; then
         set -- "${@:1:$#-1}" "-"
     else
         set -- "${@:1:$#-1}" "${FILE}"
     fi
 fi
 
-if [ -n "${FILE}" ] && ${IS_FILE}; then
+if [ -n "${FILE}" ] && ${IS_LOCAL}; then
     run_as cat -- "${FILE}" | "${JEXEC}" -l \
         -U noroot \
         -e DISPLAY="${X11APPJAIL_DISPLAY}" \
