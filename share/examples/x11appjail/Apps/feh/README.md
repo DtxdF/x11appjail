@@ -53,3 +53,4 @@ A jail is always ephemeral if this AppJail runs in portable mode.
 2. If the file is an existing file on the file system and the unprivileged user has read permission, the image is transferred from the host to the jail via stdin.
 3. This AppJail only works with regular files and URLs.
 4. Prefix the file with `jail://` to specify a file within the jail.
+5. If the last argument is `--`, the arguments are passed as-is, without transferring any file via stdin.
