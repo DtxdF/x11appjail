@@ -123,7 +123,7 @@ if [ -n "${TO_APPSPEC}" -a -n "${TO_FILE}" ]; then
         -f "${TO_FILE}" || exit 1
 elif [ -n "${TO_FILE}" ]; then
     mdo -u "${UID}" -g "${GID}" -G "${GID}" \
-        tee "${TO_FILE}" > /dev/null || exit 1
+        tee -- "${TO_FILE}" > /dev/null || exit 1
 else
     cat -u || exit 1
 fi
