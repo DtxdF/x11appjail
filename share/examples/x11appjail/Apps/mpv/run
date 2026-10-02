@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+
+run_as()
+{
+    HOME="${X11APPJAIL_HOMEDIR}" \
+        mdo -u "${X11APPJAIL_UID}" -g "${X11APPJAIL_GID}" -G "${X11APPJAIL_OGID}" -- "$@"
+}
+
+err()
+{
+    printf "###> %s\n" "$*" >&2
+}
+
+JEXEC="${X11APPJAIL_BASEDIR}/usr/local/libexec/appjail/jexec/jexec"
+
+FILE=
+IS_LOCAL=true
+
+if [ $# -gt 0 ]; then
+    FILE="${@: -1}"
+
+    if [ "${FILE}" != "--" ]; then
+        case "${FILE}" in
+            file://*) FILE="${FILE#file://}" ;;
+            jail://*) FILE="${FILE#jail://}"; IS_LOCAL=false ;;
+            *://*) IS_LOCAL=false ;;
+        esac
+
+        if ${IS_LOCAL}; then
+            if run_as [ ! -e "${FILE}" ]; then
+                err "${FILE}: file not found or no read permission."
+                exit 1
+            fi
+
+            if run_as [ ! -f "${FILE}" ]; then
+                err "${FILE}: not a regular file."
+                exit 1
+            fi
+        fi
+
+        if ${IS_LOCAL}; then
+            set -- "${@:1:$#-1}" "-"
+        elif [ -n "${FILE}" ]; then
+            set -- "${@:1:$#-1}" "${FILE}"
+        else
+            set -- "${@:1:$#-1}"
+        fi
+    else
+        unset FILE
+    fi
+fi
+
+. "${X11APPJAIL_WORKDIR}/perms.sh"
+
+if ${ENABLE_3D_ALREADY}; then
+    VGL_DISPLAY="egl"
+    ATTR="${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}.virtualgl.display"
+
+    if x11appjail sys-attr check "${ATTR}" "${X11APPJAIL_UID}"; then
+        VGL_DISPLAY=`x11appjail sys-attr cat "${ATTR}" "${X11APPJAIL_UID}"`
+    fi
+
+    set -- /usr/local/VirtualGL/bin/vglrun -d "${VGL_DISPLAY}" \
+        mpv --vo=gpu --gpu-api=opengl --hwdec=auto --hwdec-codecs=all "$@"
+else
+    set -- mpv "$@"
+fi
+
+if [ -n "${FILE}" ] && ${IS_LOCAL}; then
+    run_as cat -- "${FILE}" | "${JEXEC}" -l \
+        -U noroot \
+        -e DISPLAY="${X11APPJAIL_DISPLAY}" \
+        "${X11APPJAIL_JAIL}" \
+        "$@"
+    exit $?
+else
+    exec "${JEXEC}" -l \
+        -U noroot \
+        -e DISPLAY="${X11APPJAIL_DISPLAY}" \
+        "${X11APPJAIL_JAIL}" \
+        "$@"
+fi
