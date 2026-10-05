@@ -25,7 +25,7 @@
 .\"CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 .\"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 .\"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.Dd September 30, 2026
+.Dd October 05, 2026
 .Dt X11APPJAIL 1
 .Os
 .Sh NAME
@@ -54,7 +54,7 @@
 .Ar attr
 .Nm
 .Cm build
-.Oo Fl O Oc
+.Oo Fl OS Oc
 .Oo Fl A Ar algo Oc
 .Oo Fl a Ar arch Oc
 .Oo Fl C Ar directory Oc
@@ -176,7 +176,7 @@ Create or update a user attribute.
 .It Cm rm Ar attr
 Remove a user attribute.
 .El
-.It Cm build Oo Fl O Oc Oo Fl A Ar algo Oc Oo Fl a Ar arch Oc Oo Fl C Ar directory Oc Oo Fl c Ar algo Oc Oo Fl f Ar directory Oc Oo Fl i Ar image Oc Oo Fl o Ar filename Oc Oo Fl s Ar vendorid Ns : Ns Ar public_key Oc Oo Fl t Ar tag Oc Oo Fl v Ar version Oc Ar directory
+.It Cm build Oo Fl OS Oc Oo Fl A Ar algo Oc Oo Fl a Ar arch Oc Oo Fl C Ar directory Oc Oo Fl c Ar algo Oc Oo Fl f Ar directory Oc Oo Fl i Ar image Oc Oo Fl o Ar filename Oc Oo Fl s Ar vendorid Ns : Ns Ar public_key Oc Oo Fl t Ar tag Oc Oo Fl v Ar version Oc Ar directory
 Create an AppJail.
 .Pp
 This command creates an executable using
@@ -202,6 +202,23 @@ and may result in longer decompression times on the target system.
 This option is particularly useful for CLI or TUI applications, or
 for small applications, although it can also be used if the target
 system installs all the required dependencies.
+.It Fl S
+Shallow mode.
+.Pp
+In this mode, the AppJail image is not copied. This implies an assumption
+that the files required for the application to work will be deployed in
+some way. For example, you can use an AppJail image
+.Po see the Sy FROM No instruction in Xr appjail-makejail 5 Pc Ns ,
+use an OCI image
+.Po see the Sy from No option in Xr appjail-quick 1 Pc Ns ,
+or simply install packages at runtime
+.Po see Sy PKG No in Xr appjail-makejail 5 No and the Sy pkg No option in Xr appjail-quick 1 Pc Ns "."
+However, the latter option is not recommended, as it is less deterministic
+and prone to failure
+.Po e.g., due to a missing package Pc Ns "."
+.Pp
+This mode decouples the executable, creating a runtime dependency, but
+significantly reduces the size.
 .It Fl A Ar algo
 Compression algorithm to be used to compress
 .Ar directory Ns "."

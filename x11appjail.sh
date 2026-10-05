@@ -571,6 +571,7 @@ build()
 {
     local _o
     local opt_optimized=false
+    local opt_shallow=false
     local compress_algo="zstd"
     local arch
     arch=`uname -p` || exit ${EX_SOFTWARE}
@@ -583,10 +584,13 @@ build()
     local version
     version=`freebsd-version | grep -Eo '^[0-9]+'` || exit ${EX_SOFTWARE}
 
-    while getopts ":OA:a:C:c:f:i:o:s:t:v:" _o; do
+    while getopts ":OSA:a:C:c:f:i:o:s:t:v:" _o; do
         case "${_o}" in
             O)
                 opt_optimized=true
+                ;;
+            S)
+                opt_shallow=true
                 ;;
             A)
                 compress_algo="${OPTARG}"
@@ -670,12 +674,14 @@ build()
     local appname
     appname=`basename -- "${path}"` || exit ${EX_SOFTWARE}
 
-    if [ -z "${image}" ]; then
-        image="${appname}"
-    fi
+    if ! ${opt_shallow}; then
+        if [ -z "${image}" ]; then
+            image="${appname}"
+        fi
 
-    local image_file
-    image_file=`appjail image realpath -a "${arch}" -t "${tag}" -- "${image}"` || exit ${EX_SOFTWARE}
+        local image_file
+        image_file=`appjail image realpath -a "${arch}" -t "${tag}" -- "${image}"` || exit ${EX_SOFTWARE}
+    fi
 
     if [ -z "${out}" ]; then
         out="${appname}.AppJail"
@@ -746,8 +752,10 @@ EOF
     info "Copying ${path}/"
     run_cmd mkdir -p -- "${BUILDDIR}/x11appjail"
     run_cmd cp -a -- "${path}/" "${BUILDDIR}/x11appjail"
-    info "Copying AppJail image"
-    run_cmd cp -a -- "${image_file}" "${BUILDDIR}/x11appjail/image"
+    if ! ${opt_shallow}; then
+        info "Copying AppJail image"
+        run_cmd cp -a -- "${image_file}" "${BUILDDIR}/x11appjail/image"
+    fi
 
     info "Creating AppScript"
     set --

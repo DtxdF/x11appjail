@@ -8,7 +8,7 @@ SYNOPSIS
      x11appjail attr ls
      x11appjail attr put attr [value]
      x11appjail attr rm attr
-     x11appjail build [-O] [-A algo] [-a arch] [-C directory] [-c algo]
+     x11appjail build [-OS] [-A algo] [-a arch] [-C directory] [-c algo]
 		[-f directory] [-i image] [-o filename]
 		[-s vendorid:public_key] [-t tag] [-v version] directory
      x11appjail clipboard [-O] [-s selection] appspec1 [appspec2]
@@ -71,7 +71,7 @@ DESCRIPTION
 	   rm attr
 	       Remove a user attribute.
 
-     build [-O] [-A algo] [-a arch] [-C directory] [-c algo] [-f directory]
+     build [-OS] [-A algo] [-a arch] [-C directory] [-c algo] [-f directory]
 	  [-i image] [-o filename] [-s vendorid:public_key] [-t tag] [-v
 	  version] directory
 	  Create an AppJail.
@@ -91,6 +91,22 @@ DESCRIPTION
 	      particularly useful for CLI or TUI applications, or for small
 	      applications, although it can also be used if the target system
 	      installs all the required dependencies.
+
+	  -S  Shallow mode.
+
+	      In this mode, the AppJail image is not copied. This implies an
+	      assumption that the files required for the application to work
+	      will be deployed in some way. For example, you can use an
+	      AppJail image (see the FROM instruction in appjail-makejail(5)),
+	      use an OCI image (see the from option in appjail-quick(1)), or
+	      simply install packages at runtime (see PKG in
+	      appjail-makejail(5) and the pkg option in appjail-quick(1)).
+	      However, the latter option is not recommended, as it is less
+	      deterministic and prone to failure (e.g., due to a missing
+	      package).
+
+	      This mode decouples the executable, creating a runtime
+	      dependency, but significantly reduces the size.
 
 	  -A algo
 	      Compression algorithm to be used to compress directory.
