@@ -140,9 +140,12 @@ main()
                 shift
                 ;;
             --) shift; break ;;
-            *)
+            -*)
                 err "'$1' is invalid. Use '--help' to see a list of all available options."
                 exit 1
+                ;;
+            *)
+                break
                 ;;
         esac
         shift
@@ -242,9 +245,12 @@ main_user()
             --uninstall) opt_uninstall=true ;;
             --cache) opt_cache=true ;;
             --) shift; break ;;
-            *)
+            -*)
                 err "'$1' is invalid. Use '--help' to see a list of all available options."
                 exit 1
+                ;;
+            *)
+                break
                 ;;
         esac
         shift
