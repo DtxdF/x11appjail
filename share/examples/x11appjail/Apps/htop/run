@@ -1,8 +1,0 @@
-#!/bin/sh
-
-JEXEC="${X11APPJAIL_BASEDIR}/usr/local/libexec/appjail/jexec/jexec"
-
-exec "${JEXEC}" -l \
-    -U noroot \
-    "${X11APPJAIL_JAIL}" \
-    htop "$@"
