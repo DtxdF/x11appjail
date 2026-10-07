@@ -22,7 +22,7 @@ SYNOPSIS
      x11appjail run appspec [args ...]
      x11appjail run-cmd appspec [args ...]
      x11appjail service service appspec [args ...]
-     x11appjail transfer [-mode] source [target]
+     x11appjail transfer [-m mode] source [target]
      x11appjail trust vendorid public_key
      x11appjail trusted
      x11appjail sys-attr check attr [uid]
