@@ -498,17 +498,17 @@ SERVICES
 	  Before opening a URL with xdg-open(1), the user is prompted to allow
 	  or deny opening the URL.
 
-	  If the URL matches a list of regular expressions grep(1) (with
-	  extended regular expressions). defined by the -a option, no
-	  confirmation dialog is displayed and the URL is opened directly.
+	  If the URL matches a list of regular expressions (interpreted by
+	  grep(1) with extended regular expressions) defined by the -a option,
+	  no confirmation dialog is displayed and the URL is opened directly.
 	  If it does not match or if this list of regular expressions is not
 	  defined, a confirmation dialog box is displayed, and the URL is
 	  shown in percent-encoded format for non-ASCII (7-bit) characters and
-	  the  character, so that even invisible Unicode characters can be
-	  parsed in this way. The  character is percent-encoded because this
+	  the " character, so that even invisible Unicode characters can be
+	  parsed in this way. The " character is percent-encoded because this
 	  character is already used in the dialog box where the URL is
 	  displayed. However, even though the URL is shown in percent-encoded
-	  for non-ASCII (7-bit) characters and the  character, the URL is
+	  for non-ASCII (7-bit) characters and the " character, the URL is
 	  passed as-is.
 
      Notification appspec
