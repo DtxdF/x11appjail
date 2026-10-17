@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -x
 #
 # Copyright (c) 2026, Jesús Daniel Colmenares Oviedo <DtxdF@disroot.org>
 # All rights reserved.
@@ -50,15 +50,10 @@ build_appspec "$1"
 
 shift
 
-for JAIL in `appjail jail list -H name`; do
-    case "${JAIL}" in
-        x11appjail-${APPNAME}-${UID}_${PROFILE}) ;;
-        *) continue ;;
-    esac
+JAIL="x11appjail-${APPNAME}-${UID}_${PROFILE}"
 
-    if appjail status -q -- "${JAIL}" > /dev/null 2>&1; then
-        appjail stop -- "${JAIL}"
-    fi
+if appjail status -q -- "${JAIL}" > /dev/null 2>&1; then
+    appjail stop -- "${JAIL}"
+fi
 
-    appjail jail destroy -Rf -- "${JAIL}" > /dev/null 2>&1
-done
+appjail jail destroy -Rf -- "${JAIL}" > /dev/null 2>&1
