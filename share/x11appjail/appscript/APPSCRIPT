@@ -927,15 +927,41 @@ help()
         echo
         cat << EOF
 AppJail options:
-  --help                     Show this help message and exit.
-  --version                  Show the version and exit.
-  --install                  Install the AppJail.
-  --uninstall                Uninstall the AppJail.
-  --cache                    Used by the caching system.
-  --profile <profile>        (root only). Profile name.
-  --uid <uid>                (root only). UID to be used.
-  --gid <gid>                (root only). GID to be used.
-  --display <display>        (root only). Host's DISPLAY environment variable.
+
+  --help
+        Show this help message and exit.
+
+  --version
+        Show the version and exit.
+
+  --install
+        Install the AppJail.
+
+  --uninstall
+        Uninstall the AppJail.
+
+  --cache
+        Used by the caching system.
+
+  --profile <profile>
+        (root only). Profile name.
+
+  --uid <uid>
+        (root only). UID to be used.
+
+  --gid <gid>
+        (root only). GID to be used.
+
+  --display <display>
+        (root only). Host's DISPLAY environment variable.
+
+  --dbus-system-bus-address <address>
+        (root only). The address of the system message bus is given in
+        this environment variable.
+
+  --dbus-session-bus-address <address>
+        (root only). The address of the login session message bus is
+        given in this environment variable.
 
 Notes:
   - Unless --install, --uninstall, or --cache is used, the application
