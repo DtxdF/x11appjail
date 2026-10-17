@@ -570,6 +570,7 @@ version()
 build()
 {
     local _o
+    local opt_dereference=false
     local opt_optimized=false
     local opt_shallow=false
     local compress_algo="zstd"
@@ -584,8 +585,11 @@ build()
     local version
     version=`freebsd-version | grep -Eo '^[0-9]+'` || exit ${EX_SOFTWARE}
 
-    while getopts ":OSA:a:C:c:f:i:o:s:t:v:" _o; do
+    while getopts ":LOSA:a:C:c:f:i:o:s:t:v:" _o; do
         case "${_o}" in
+            L)
+                opt_dereference=true
+                ;;
             O)
                 opt_optimized=true
                 ;;
@@ -761,6 +765,9 @@ EOF
     set --
     if [ -n "${vendorid}" -a -n "${sign_key}" ]; then
         set -- -I "${vendorid}" -i "${sign_key}" -A "${checksum_algo}"
+    fi
+    if ${opt_dereference}; then
+        set -- -L "$@"
     fi
     # signify(1) may prompt for a passphrase.
     info "appscript" "-MM" "$@" "-a" "${arch}" "-c" "${compress_algo}" "-o" "${out}" "--" "${BUILDDIR}"
@@ -1066,7 +1073,7 @@ usage: x11appjail attr check <attr>
        x11appjail attr ls
        x11appjail attr put <attr> [<value>]
        x11appjail attr rm <attr>
-       x11appjail build [-O] [-A <algo>] [-a <arch>] [-C <directory>] [-c <algo>]
+       x11appjail build [-LOS] [-A <algo>] [-a <arch>] [-C <directory>] [-c <algo>]
                [-f <directory>] [-i <image>] [-o <filename>]
                [-s <vendorid>:<public_key>] [-t <tag>] [-v <version>] <directory>
        x11appjail clipboard [-O] [-s <selection>] <appspec1> [<appspec2>]
