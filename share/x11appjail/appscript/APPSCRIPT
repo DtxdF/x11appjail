@@ -11,6 +11,8 @@ APPSDIR="${DATADIR}/apps"
 USERSDIR="${DATADIR}/users"
 LOCKSDIR="${TMPDIR:-/tmp}/.x11appjail-locks"
 X11APPJAILDIR="${SELF}/x11appjail"
+RUNDIR="/var/run/x11appjail"
+CLEANDIR="${RUNDIR}/clean"
 export X11APPJAIL_IMAGE="${X11APPJAILDIR}/image"
 export X11APPJAIL_BASEDIR="${SELF}"
 export X11APPJAIL_WORKDIR="${X11APPJAILDIR}"
@@ -405,7 +407,7 @@ start_cache_ttl()
         local rundir
 
         if iam_root; then
-            rundir="/var/run/x11appjail"
+            rundir="${RUNDIR}"
         else
             local datadir="${USER_HOMEDIR}/.x11appjail"
             rundir="${datadir}/run"
@@ -484,7 +486,7 @@ start_cache()
     local rundir
 
     if iam_root; then
-        rundir="/var/run/x11appjail"
+        rundir="${RUNDIR}"
         
         create_directory "${rundir}"
     else
@@ -564,6 +566,12 @@ x11appjail_run()
         descr=`head -1 -- "${X11APPJAILDIR}/descr"` || exit 1
     else
         descr="${APPNAME}"
+    fi
+
+    if [ -x "${X11APPJAILDIR}/clean" ]; then
+        create_cleandir
+
+        install -o 0 -g 0 -m 0555 -- "${X11APPJAILDIR}/clean" "${CLEANDIR}/${X11APPJAIL_JAIL}" || exit 1
     fi
 
     export X11APPJAIL_TITLE="${X11APPJAIL_PROFILE}: ${X11APPJAIL_TITLE:-${descr}}"
@@ -829,6 +837,17 @@ x11appjail_destroy_jail()
 
         "${APPJAIL}" jail destroy -Rf -- "${jail}" > /dev/null 2>&1
     done
+}
+
+create_cleandir()
+{
+    create_rundir
+    create_directory "${CLEANDIR}"
+}
+
+create_rundir()
+{
+    create_directory "${RUNDIR}"
 }
 
 create_appdir()

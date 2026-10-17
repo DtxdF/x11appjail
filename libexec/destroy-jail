@@ -31,17 +31,13 @@
 test -n "${DOAS_USER}" || exit 1
 
 UID=`id -u "${DOAS_USER}"` || exit 1
+GID=`id -g "${DOAS_USER}"` || exit 1
+OGID=`id -G "${UID}" | tr ' ' ','` || exit 1
+PREFIX=`x11appjail prefix` || exit 1
 
 load_common()
 {
-    local _s
-    _s=`which x11appjail` || exit ${EX_SOFTWARE}
-    _s=`dirname -- "${_s}"` || exit ${EX_SOFTWARE}
-    _s="${_s}/../lib/x11appjail"
-
-    LIBDIR="${_s}"
-
-    . "${LIBDIR}/common"
+    . "${PREFIX}/lib/x11appjail/common"
 }
 
 load_common
@@ -51,6 +47,21 @@ build_appspec "$1"
 shift
 
 JAIL="x11appjail-${APPNAME}-${UID}_${PROFILE}"
+
+CLEAN_SCRIPT="/var/run/x11appjail/clean/${JAIL}"
+
+if [ -x "${CLEAN_SCRIPT}" ]; then
+    env \
+        X11APPJAIL_UID="${UID}" \
+        X11APPJAIL_GID="${GID}" \
+        X11APPJAIL_OGID="${OGID}" \
+        X11APPJAIL_APPNAME="${APPNAME}" \
+        X11APPJAIL_PROFILE="${PROFILE}" \
+        X11APPJAIL_PREFIX="${PREFIX}" \
+        "${CLEAN_SCRIPT}" || exit 1
+
+    rm -f -- "${CLEAN_SCRIPT}"
+fi
 
 if appjail status -q -- "${JAIL}" > /dev/null 2>&1; then
     appjail stop -- "${JAIL}"

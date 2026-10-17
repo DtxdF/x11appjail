@@ -25,7 +25,7 @@
 .\"CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 .\"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 .\"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.Dd October 01, 2026
+.Dd October 17, 2026
 .Dt REPRODUCE-SPEC 5
 .Os
 .Sh NAME
@@ -66,6 +66,28 @@ An executable file to run the application inside the jail.
 You do not include this file yourself, but it will be included by the
 .Cm build
 command.
+.It Pa clean
+An executable file that runs before the jail is destroyed by the
+.Cm destroy-jail
+command. It's important
+to note that if this executable finishes with a non-zero exit status, the
+jail will not be destroyed.
+.Pp
+The executable file will be installed as
+.Sy /var/run/x11appjail/clean/<jail> Ns "."
+This also means that the executable file must be self-contained, as it
+will be decoupled from AppJail.
+.Pp
+Only a subset of environment variables are explicitly set:
+.Pp
+.Bl -tag -width xx -compact -offset 4
+.It Ev X11APPJAIL_UID
+.It Ev X11APPJAIL_GID
+.It Ev X11APPJAIL_OGID
+.It Ev X11APPJAIL_APPNAME
+.It Ev X11APPJAIL_PROFILE
+.It Ev X11APPJAIL_PREFIX
+.El
 .El
 .Sh ENVIRONMENT
 .Bl -tag -width xx

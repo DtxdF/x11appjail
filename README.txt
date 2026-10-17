@@ -677,6 +677,12 @@ FILES
 	 Location of the cache system when running an AppJail in portable
 	 mode.	See the CACHING section for details.
 
+     /var/run/x11appjail/clean
+	 Location of the scripts that destroy-jail will run before destroying
+	 the jail.
+
+	 See x11appjail-spec(5) for details.
+
      The following directories are created when the process invoking an
      AppJail is an unprivileged user:
 
