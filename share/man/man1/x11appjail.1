@@ -25,7 +25,7 @@
 .\"CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 .\"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 .\"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.Dd October 10, 2026
+.Dd October 16, 2026
 .Dt X11APPJAIL 1
 .Os
 .Sh NAME
@@ -806,6 +806,18 @@ It is strongly recommended to limit the scope of services to a single
 task and to assume that any input from the jail is untrusted. See
 .Xr sprog 7
 for relevant recommendations.
+.Sh DBUS
+The only responsibility in
+.Nm
+with D-Bus is to pass the environment variables
+.Ev DBUS_SESSION_BUS_ADDRESS
+and
+.Ev DBUS_SYSTEM_BUS_ADDRESS
+to AppJails. It is the responsibility of the AppJails how they use D-Bus within
+a jail. However, it is strongly recommended to use
+.Xr xdg-dbus-proxy 1 Ns ,
+avoiding the system bus unless absolutely necessary, and using the session
+bus in filtered mode.
 .Sh ATTRIBUTES
 Attributes are a small set of text files that allow both the system
 operator and an unprivileged user to define data that an AppJail can
@@ -908,6 +920,23 @@ for more information.
 Note that this environment variable must match the following pattern to
 be considered valid:
 .Qo Sy "^(unix|localhost|127\.0\.0\.1|\[::1\])?:[0-9]+(\.[0-9]+)?$" Qc
+.It Ev DBUS_SYSTEM_BUS_ADDRESS
+The address of the system message bus is given in this environment variable.
+If this variable is not set,
+.Sy unix:path=/var/run/dbus/system_bus_socket
+is used instead.
+.Pp
+See
+.Sx DBUS
+section for more details.
+.It Ev DBUS_SESSION_BUS_ADDRESS
+The address of the login session message bus is given in this environment variable.
+It's not required that this environment variable to be set, but the behaviour of
+applications in a jail is undefined.
+.Pp
+See
+.Sx DBUS
+section for more details.
 .El
 .Sh FILES
 The following directories are created when the process invoking an
@@ -927,13 +956,9 @@ conventionally map the unprivileged user's UID and GID so that
 the user can access those files from the host.
 .It Pa /var/x11appjail/attr
 Location of attribute files.
-.It Pa /var/run/x11appjail-cache
-Location of the directory used by the background process when AppJail
-is invoked with the
-.Fl Fl cache
-parameter. See the
-.Sx CACHING
-section for more details.
+.It Pa /var/run/x11appjail
+Location of directory used by some runtime operations, such as
+.Sx CACHING Ns "."
 .It Pa /tmp/.x11appjail-locks
 Location of the file locks used by the AppJail.
 .It Pa /tmp/.x11appjail-apps
@@ -956,7 +981,7 @@ that, even when installing an AppJail as an unprivileged user, it always
 runs in portable mode.
 .It Pa ~/.x11appjail/run
 Equivalent to
-.Pa /var/run/x11appjail-cache
+.Pa /var/run/x11appjail
 but for unprivileged users.
 .El
 .Sh EXIT STATUS

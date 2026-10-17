@@ -47,20 +47,62 @@ load_common()
 
 load_common
 
-DISPLAY="$1"
+EXEC_DISPLAY=":0"
+EXEC_DBUS_SYSTEM_BUS_ADDRESS="unix:path=/var/run/dbus/system_bus_socket"
+EXEC_DBUS_SESSION_BUS_ADDRESS=
 
-test -n "${DISPLAY}" || exit 1
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --display)
+            if [ "$2" = "" ]; then
+                exit 1
+            fi
 
-if ! check_display "${DISPLAY}"; then
-    err "Invalid DISPLAY: ${DISPLAY}"
+            EXEC_DISPLAY="$2"
+            shift
+            ;;
+        --dbus-system-bus-address)
+            if [ "$2" = "" ]; then
+                exit 1
+            fi
+
+            EXEC_DBUS_SYSTEM_BUS_ADDRESS="$2"
+            shift
+            ;;
+        --dbus-session-bus-address)
+            if [ "$2" = "" ]; then
+                exit 1
+            fi
+
+            EXEC_DBUS_SESSION_BUS_ADDRESS="$2"
+            shift
+            ;;
+        --) shift; break ;;
+        -*) exit 1; ;;
+        *) break; ;;
+    esac
+    shift
+done
+
+if ! check_display "${EXEC_DISPLAY}"; then
+    err "Invalid DISPLAY: ${EXEC_DISPLAY}"
     exit 1
 fi
-
-shift
 
 build_appspec "$1"
 
 shift
 
-exec "/var/x11appjail/apps/${APPNAME}.${PROFILE}/START" \
-    --display "${DISPLAY}" --profile "${PROFILE}" --uid "${UID}" --gid "${GID}" -- "$@"
+set -- -- "$@"
+
+if [ -n "${EXEC_DBUS_SESSION_BUS_ADDRESS}" ]; then
+    set -- --dbus-session-bus-address "${EXEC_DBUS_SESSION_BUS_ADDRESS}" "$@"
+fi
+
+set -- --display "${DISPLAY}" "$@"
+set -- --profile "${PROFILE}" "$@"
+set -- --uid "${UID}" "$@"
+set -- --gid "${GID}" "$@"
+set -- --dbus-system-bus-address "${EXEC_DBUS_SYSTEM_BUS_ADDRESS}" "$@"
+
+exec "/var/x11appjail/apps/${APPNAME}.${PROFILE}/START" "$@"

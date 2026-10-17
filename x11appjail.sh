@@ -870,12 +870,20 @@ run()
 
     build_libexec
 
+    set -- -- "${app}" "$@"
+    set -- --display "${DISPLAY:-:0}" "$@"
+    set -- --dbus-system-bus-address "${DBUS_SYSTEM_BUS_ADDRESS:-unix:path=/var/run/dbus/system_bus_socket}" "$@"
+
+    if [ -n "${DBUS_SESSION_BUS_ADDRESS}" ]; then
+        set -- --dbus-session-bus-address "${DBUS_SESSION_BUS_ADDRESS}" "$@"
+    fi
+
     if ! printf "%s" "${app}" | grep -q '/'; then
         # installed
-        exec doas "${LIBEXEC}/map-exec" "exec" "${DISPLAY:-:0}" "${app}" "$@"
+        exec doas "${LIBEXEC}/map-exec" "exec" "$@"
     else
         # portable
-        exec doas "${LIBEXEC}/map-exec" "veriexec" "${DISPLAY:-:0}" "${app}" "$@"
+        exec doas "${LIBEXEC}/map-exec" "veriexec" "$@"
     fi
 }
 

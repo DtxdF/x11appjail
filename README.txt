@@ -544,6 +544,14 @@ SERVICES
      task and to assume that any input from the jail is untrusted. See
      sprog(7) for relevant recommendations.
 
+DBUS
+     The only responsibility in x11appjail with D-Bus is to pass the
+     environment variables DBUS_SESSION_BUS_ADDRESS and
+     DBUS_SYSTEM_BUS_ADDRESS to AppJails. It is the responsibility of the
+     AppJails how they use D-Bus within a jail. However, it is strongly
+     recommended to use xdg-dbus-proxy(1), avoiding the system bus unless
+     absolutely necessary, and using the session bus in filtered mode.
+
 ATTRIBUTES
      Attributes are a small set of text files that allow both the system
      operator and an unprivileged user to define data that an AppJail can use
@@ -623,6 +631,21 @@ ENVIRONMENT
 	 Note that this environment variable must match the following pattern
 	 to be considered valid: "^(unix|localhost|127.0.0.1|+(.[0-9]+)?$"
 
+     DBUS_SYSTEM_BUS_ADDRESS
+	 The address of the system message bus is given in this environment
+	 variable.  If this variable is not set,
+	 unix:path=/var/run/dbus/system_bus_socket is used instead.
+
+	 See DBUS section for more details.
+
+     DBUS_SESSION_BUS_ADDRESS
+	 The address of the login session message bus is given in this
+	 environment variable.	It's not required that this environment
+	 variable to be set, but the behaviour of applications in a jail is
+	 undefined.
+
+	 See DBUS section for more details.
+
 FILES
      The following directories are created when the process invoking an
      AppJail is root:
@@ -643,10 +666,9 @@ FILES
      /var/x11appjail/attr
 	 Location of attribute files.
 
-     /var/run/x11appjail-cache
-	 Location of the directory used by the background process when AppJail
-	 is invoked with the --cache parameter. See the CACHING section for
-	 more details.
+     /var/run/x11appjail
+	 Location of directory used by some runtime operations, such as
+	 CACHING.
 
      /tmp/.x11appjail-locks
 	 Location of the file locks used by the AppJail.
@@ -666,7 +688,7 @@ FILES
 	 portable mode.
 
      ~/.x11appjail/run
-	 Equivalent to /var/run/x11appjail-cache but for unprivileged users.
+	 Equivalent to /var/run/x11appjail but for unprivileged users.
 
 EXIT STATUS
      The x11appjail utility exits 0 on success, and >0 if an error occurs.

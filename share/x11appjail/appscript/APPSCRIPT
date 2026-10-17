@@ -23,6 +23,8 @@ export XAUTHORITY=
 XAUTHORITY_TMPDIR=
 USER_XAUTHORITY=
 HOST_DISPLAY=":0"
+HOST_DBUS_SYSTEM_BUS_ADDRESS="unix:path=/var/run/dbus/system_bus_socket"
+HOST_DBUS_SESSION_BUS_ADDRESS=
 VERSION="#VERSION#"
 
 main()
@@ -138,6 +140,26 @@ main()
                 fi
 
                 shift
+                ;;
+            --dbus-system-bus-address)
+                if [ "$2" = "" ]; then
+                    usage
+                    exit 1
+                fi
+
+               HOST_DBUS_SYSTEM_BUS_ADDRESS="$2"
+
+               shift
+                ;;
+            --dbus-session-bus-address)
+                if [ "$2" = "" ]; then
+                    usage
+                    exit 1
+                fi
+
+               HOST_DBUS_SESSION_BUS_ADDRESS="$2"
+
+               shift
                 ;;
             --) shift; break ;;
             -*)
@@ -305,7 +327,15 @@ main_user()
     elif ${opt_cache}; then
         start_cache_ttl
     else
-        exec doas "${LIBEXEC}/map-exec" "veriexec" "${DISPLAY:-:0}" "${APPSCRIPT_SCRIPT}" "$@"
+        set -- -- "${APPSCRIPT_SCRIPT}" "$@"
+        set -- --display "${DISPLAY:-:0}" "$@"
+        set -- --dbus-system-bus-address "${DBUS_SYSTEM_BUS_ADDRESS:-/var/run/dbus/system_bus_socket}" "$@"
+
+        if [ -n "${DBUS_SESSION_BUS_ADDRESS}" ]; then
+            set -- --dbus-session-bus-address "${DBUS_SESSION_BUS_ADDRESS}" "$@"
+        fi
+
+        exec doas "${LIBEXEC}/map-exec" "veriexec" "$@"
     fi
 }
 
@@ -375,7 +405,7 @@ start_cache_ttl()
         local rundir
 
         if iam_root; then
-            rundir="/var/run/x11appjail-cache"
+            rundir="/var/run/x11appjail"
         else
             local datadir="${USER_HOMEDIR}/.x11appjail"
             rundir="${datadir}/run"
@@ -454,7 +484,7 @@ start_cache()
     local rundir
 
     if iam_root; then
-        rundir="/var/run/x11appjail-cache"
+        rundir="/var/run/x11appjail"
         
         create_directory "${rundir}"
     else
@@ -545,6 +575,10 @@ x11appjail_run()
     export X11APPJAIL_CLI_ONLY
     export X11APPJAIL_APPNAME="${APPNAME}"
     export X11APPJAIL_USERDIR="${USERSDIR}/${UID}/${APPNAME}.${X11APPJAIL_PROFILE}"
+    export X11APPJAIL_DBUS_SYSTEM_BUS_ADDRESS="${HOST_DBUS_SYSTEM_BUS_ADDRESS}"
+    if [ -n "${HOST_DBUS_SESSION_BUS_ADDRESS}" ]; then
+        export X11APPJAIL_DBUS_SESSION_BUS_ADDRESS="${HOST_DBUS_SESSION_BUS_ADDRESS}"
+    fi
 
     local lockdir="${LOCKSDIR}/${APPNAME}.${X11APPJAIL_PROFILE}"
 

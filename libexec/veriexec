@@ -52,16 +52,47 @@ load_common()
 
 load_common
 
-DISPLAY="$1"
+VERIEXEC_DISPLAY=":0"
+VERIEXEC_DBUS_SYSTEM_BUS_ADDRESS="unix:path=/var/run/dbus/system_bus_socket"
+VERIEXEC_DBUS_SESSION_BUS_ADDRESS=
 
-test -n "${DISPLAY}" || exit 1
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --display)
+            if [ "$2" = "" ]; then
+                exit 1
+            fi
 
-if ! check_display "${DISPLAY}"; then
-    err "Invalid DISPLAY: ${DISPLAY}"
+            VERIEXEC_DISPLAY="$2"
+            shift
+            ;;
+        --dbus-system-bus-address)
+            if [ "$2" = "" ]; then
+                exit 1
+            fi
+
+            VERIEXEC_DBUS_SYSTEM_BUS_ADDRESS="$2"
+            shift
+            ;;
+        --dbus-session-bus-address)
+            if [ "$2" = "" ]; then
+                exit 1
+            fi
+
+            VERIEXEC_DBUS_SESSION_BUS_ADDRESS="$2"
+            shift
+            ;;
+        --) shift; break ;;
+        -*) exit 1; ;;
+        *) break; ;;
+    esac
+    shift
+done
+
+if ! check_display "${VERIEXEC_DISPLAY}"; then
+    err "Invalid DISPLAY: ${VERIEXEC_DISPLAY}"
     exit 1
 fi
-
-shift
 
 APPSCRIPT_SCRIPT="$1"
 
@@ -169,4 +200,15 @@ fi
 
 export X11APPJAIL_EPHEMERAL=1
 
-exec "${EXECUTABLE}" --display "${DISPLAY}" --uid "${UID}" --gid "${GID}" -- "$@"
+set -- -- "$@"
+
+if [ -n "${VERIEXEC_DBUS_SESSION_BUS_ADDRESS}" ]; then
+    set -- --dbus-session-bus-address "${VERIEXEC_DBUS_SESSION_BUS_ADDRESS}" "$@"
+fi
+
+set -- --display "${VERIEXEC_DISPLAY}" "$@"
+set -- --uid "${UID}" "$@"
+set -- --gid "${GID}" "$@"
+set -- --dbus-system-bus-address "${VERIEXEC_DBUS_SYSTEM_BUS_ADDRESS}" "$@"
+
+exec "${EXECUTABLE}" "$@"
