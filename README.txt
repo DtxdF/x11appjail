@@ -8,7 +8,7 @@ SYNOPSIS
      x11appjail attr ls
      x11appjail attr put attr [value]
      x11appjail attr rm attr
-     x11appjail build [-OS] [-A algo] [-a arch] [-C directory] [-c algo]
+     x11appjail build [-LOS] [-A algo] [-a arch] [-C directory] [-c algo]
 		[-f directory] [-i image] [-o filename]
 		[-s vendorid:public_key] [-t tag] [-v version] directory
      x11appjail clipboard [-O] [-s selection] appspec1 [appspec2]
@@ -71,7 +71,7 @@ DESCRIPTION
 	   rm attr
 	       Remove a user attribute.
 
-     build [-OS] [-A algo] [-a arch] [-C directory] [-c algo] [-f directory]
+     build [-LOS] [-A algo] [-a arch] [-C directory] [-c algo] [-f directory]
 	  [-i image] [-o filename] [-s vendorid:public_key] [-t tag] [-v
 	  version] directory
 	  Create an AppJail.
@@ -79,6 +79,10 @@ DESCRIPTION
 	  This command creates an executable using appscript(1) that contains
 	  an existing appjail-image(1). It's recommended to use reproduce(1)
 	  to create appjail-image(1)s.
+
+	  -L  All symbolic links will be followed.
+	      Normally, symbolic links are archived as such. With this option,
+	      the target of the link will be archived instead.
 
 	  -O  Optimized mode.
 
