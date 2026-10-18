@@ -51,117 +51,15 @@ main()
             --install) opt_install=true ;;
             --uninstall) opt_uninstall=true ;;
             --cache) opt_cache=true ;;
-            --profile)
+            --set-option)
                 if [ "$2" = "" ]; then
                     usage
                     exit 1
                 fi
 
-                X11APPJAIL_PROFILE="$2"
+                parse_option "$2"
 
                 shift
-                ;;
-            --uid)
-                if [ "$2" = "" ]; then
-                    usage
-                    exit 1
-                fi
-
-                UID="$2"
-
-                get_user_info "${UID}"
-
-                local user_xauthority="${USER_HOMEDIR}/.Xauthority"
-
-                # This is simply an optimization to verify that the file
-                # is indeed a file and not something else (in this case,
-                # a malicious symlink). See what follows this check.
-                if [ -f "${user_xauthority}" ] && [ ! -L "${user_xauthority}" ]; then
-                    XAUTHORITY_TMPDIR=`mktemp -d -t x11appjail` || exit 1
-
-                    local xauthority="${XAUTHORITY_TMPDIR}/.Xauthority"
-
-                    cp -P -- "${user_xauthority}" "${xauthority}" || exit 1
-
-                    #
-                    # But to combat the TOCTOU, we need to verify again
-                    # that the file is indeed a regular file.
-                    #
-                    xauthority=`find -- "${xauthority}" -type f -print` || exit 1
-
-                    if [ -n "${xauthority}" ]; then
-                        XAUTHORITY="${xauthority}"
-                        USER_XAUTHORITY="${user_xauthority}"
-                    else
-                        rm -rf -- "${XAUTHORITY_TMPDIR}"
-                    fi
-                fi
-
-                if [ -z "${XAUTHORITY}" ]; then
-                    warn "${user_xauthority}: no .Xauthority found."
-
-                    #
-                    # Using an empty file is fine, but Xephyr(1) will
-                    # refuse to connect, so it's not quite that fine.
-                    #
-                    XAUTHORITY=`mktemp -t x11appjail` || exit 1
-                fi
-
-                export X11APPJAIL_UID="${UID}"
-
-                OGID=`id -G "${UID}" | tr ' ' ','` || exit 1
-
-                export X11APPJAIL_OGID="${OGID}"
-                
-                shift
-                ;;
-            --gid)
-                if [ "$2" = "" ]; then
-                    usage
-                    exit 1
-                fi
-
-                GID="$2"
-                GID=`id -g -- "${GID}"` || exit 1
-
-                export X11APPJAIL_GID="${GID}"
-
-                shift
-                ;;
-            --display)
-                if [ "$2" = "" ]; then
-                    usage
-                    exit 1
-                fi
-
-                HOST_DISPLAY="$2"
-
-                if ! check_display "${HOST_DISPLAY}"; then
-                    err "Invalid DISPLAY: ${HOST_DISPLAY}"
-                    exit 1
-                fi
-
-                shift
-                ;;
-            --dbus-system-bus-address)
-                if [ "$2" = "" ]; then
-                    usage
-                    exit 1
-                fi
-
-               HOST_DBUS_SYSTEM_BUS_ADDRESS="$2"
-
-               shift
-                ;;
-            --dbus-session-bus-address)
-                if [ "$2" = "" ]; then
-                    usage
-                    exit 1
-                fi
-
-               HOST_DBUS_SESSION_BUS_ADDRESS="$2"
-
-               shift
                 ;;
             --) shift; break ;;
             -*)
@@ -244,6 +142,87 @@ main()
 
         x11appjail_run "$@"
     fi
+}
+
+parse_option()
+{
+    local option="$1"
+
+    case "${option}" in
+        profile=*)
+            X11APPJAIL_PROFILE="${option#*=}"
+            ;;
+        uid=*)
+            UID="${option#*=}"
+
+            get_user_info "${UID}"
+
+            local user_xauthority="${USER_HOMEDIR}/.Xauthority"
+
+            # This is simply an optimization to verify that the file
+            # is indeed a file and not something else (in this case,
+            # a malicious symlink). See what follows this check.
+            if [ -f "${user_xauthority}" ] && [ ! -L "${user_xauthority}" ]; then
+                XAUTHORITY_TMPDIR=`mktemp -d -t x11appjail` || exit 1
+
+                local xauthority="${XAUTHORITY_TMPDIR}/.Xauthority"
+
+                cp -P -- "${user_xauthority}" "${xauthority}" || exit 1
+
+                #
+                # But to combat the TOCTOU, we need to verify again
+                # that the file is indeed a regular file.
+                #
+                xauthority=`find -- "${xauthority}" -type f -print` || exit 1
+
+                if [ -n "${xauthority}" ]; then
+                    XAUTHORITY="${xauthority}"
+                    USER_XAUTHORITY="${user_xauthority}"
+                else
+                    rm -rf -- "${XAUTHORITY_TMPDIR}"
+                fi
+            fi
+
+            if [ -z "${XAUTHORITY}" ]; then
+                warn "${user_xauthority}: no .Xauthority found."
+
+                #
+                # Using an empty file is fine, but Xephyr(1) will
+                # refuse to connect, so it's not quite that fine.
+                #
+                XAUTHORITY=`mktemp -t x11appjail` || exit 1
+            fi
+
+            export X11APPJAIL_UID="${UID}"
+
+            OGID=`id -G "${UID}" | tr ' ' ','` || exit 1
+
+            export X11APPJAIL_OGID="${OGID}"
+            ;;
+        gid=*)
+            GID="${option#*=}"
+            GID=`id -g -- "${GID}"` || exit 1
+
+            export X11APPJAIL_GID="${GID}"
+            ;;
+        display=*)
+            HOST_DISPLAY="${option#*=}"
+
+            if ! check_display "${HOST_DISPLAY}"; then
+                err "Invalid DISPLAY: ${HOST_DISPLAY}"
+                exit 1
+            fi
+            ;;
+        dbus-system-bus-address=*)
+            HOST_DBUS_SYSTEM_BUS_ADDRESS="${option#*=}"
+            ;;
+        dbus-session-bus-address=*)
+            HOST_DBUS_SESSION_BUS_ADDRESS="${option#*=}"
+            ;;
+        *)
+            warn "Ignoring unknown option '${option}'"
+            ;;
+    esac
 }
 
 main_user()
@@ -330,11 +309,11 @@ main_user()
         start_cache_ttl
     else
         set -- -- "${APPSCRIPT_SCRIPT}" "$@"
-        set -- --display "${DISPLAY:-:0}" "$@"
-        set -- --dbus-system-bus-address "${DBUS_SYSTEM_BUS_ADDRESS:-/var/run/dbus/system_bus_socket}" "$@"
+        set -- display="${DISPLAY:-:0}" "$@"
+        set -- dbus-system-bus-address="${DBUS_SYSTEM_BUS_ADDRESS:-/var/run/dbus/system_bus_socket}" "$@"
 
         if [ -n "${DBUS_SESSION_BUS_ADDRESS}" ]; then
-            set -- --dbus-session-bus-address "${DBUS_SESSION_BUS_ADDRESS}" "$@"
+            set -- dbus-session-bus-address="${DBUS_SESSION_BUS_ADDRESS}" "$@"
         fi
 
         exec doas "${LIBEXEC}/map-exec" "veriexec" "$@"
@@ -900,14 +879,10 @@ build_jailname()
 
 load_common()
 {
-    local _s
-    _s=`which x11appjail` || exit ${EX_SOFTWARE}
-    _s=`dirname -- "${_s}"` || exit ${EX_SOFTWARE}
-    _s="${_s}/../lib/x11appjail"
+    local prefix
+    prefix=`x11appjail prefix` || exit 1
 
-    LIBDIR="${_s}"
-
-    . "${LIBDIR}/common"
+    . "${prefix}/lib/x11appjail/common"
 }
 
 usage()
@@ -943,29 +918,34 @@ AppJail options:
   --cache
         Used by the caching system.
 
-  --profile <profile>
-        (root only). Profile name.
+  --set-option <option>=<value>
+        (root only). Set an option.
 
-  --uid <uid>
-        (root only). UID to be used.
+        Options:
 
-  --gid <gid>
-        (root only). GID to be used.
+          - profile=<profile>
+              Profile name.
 
-  --display <display>
-        (root only). Host's DISPLAY environment variable.
+          - uid=<uid>
+              UID to be used.
 
-  --dbus-system-bus-address <address>
-        (root only). The address of the system message bus is given in
-        this environment variable.
+          - gid=<gid>
+              GID to be used.
 
-  --dbus-session-bus-address <address>
-        (root only). The address of the login session message bus is
-        given in this environment variable.
+          - display=<display>
+              Host's DISPLAY environment variable.
+
+          - dbus-system-bus-address=<address>
+              The address of the system message bus is given in this
+              environment variable.
+
+          - dbus-session-bus-address=<address>
+              The address of the login session message bus is given in
+              this environment variable.
 
 Notes:
-  - Unless --install, --uninstall, or --cache is used, the application
-    will run inside the jail.
+  - The default behavior is to run the application within the jail unless
+    the --install, --uninstall or --cache options are specified.
   - Use \`--\` to indicate the end of the arguments if the first argument
     is not a positional argument.
 EOF

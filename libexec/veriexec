@@ -40,57 +40,46 @@ KEYSDIR="${DATADIR}/keys"
 
 load_common()
 {
-    local _s
-    _s=`which x11appjail` || exit ${EX_SOFTWARE}
-    _s=`dirname -- "${_s}"` || exit ${EX_SOFTWARE}
-    _s="${_s}/../lib/x11appjail"
+    local prefix
+    prefix=`x11appjail prefix` || exit 1
 
-    LIBDIR="${_s}"
-
-    . "${LIBDIR}/common"
+    . "${prefix}/lib/x11appjail/common"
 }
 
 load_common
 
-VERIEXEC_DISPLAY=":0"
-VERIEXEC_DBUS_SYSTEM_BUS_ADDRESS="unix:path=/var/run/dbus/system_bus_socket"
-VERIEXEC_DBUS_SESSION_BUS_ADDRESS=
+HOST_DISPLAY=":0"
+HOST_DBUS_SYSTEM_BUS_ADDRESS="unix:path=/var/run/dbus/system_bus_socket"
+HOST_DBUS_SESSION_BUS_ADDRESS=
+HOST_OPTION=
+HOST_INDEX=1
 
-while [ $# -gt 0 ]; do
-    case "$1" in
-        --display)
-            if [ "$2" = "" ]; then
-                exit 1
-            fi
-
-            VERIEXEC_DISPLAY="$2"
-            shift
+for HOST_OPTION; do
+    case "${HOST_OPTION}" in
+        display=*)
+            HOST_DISPLAY="${HOST_OPTION#*=}"
             ;;
-        --dbus-system-bus-address)
-            if [ "$2" = "" ]; then
-                exit 1
-            fi
-
-            VERIEXEC_DBUS_SYSTEM_BUS_ADDRESS="$2"
-            shift
+        dbus-system-bus-address=*)
+            HOST_DBUS_SYSTEM_BUS_ADDRESS="${HOST_OPTION#*=}"
             ;;
-        --dbus-session-bus-address)
-            if [ "$2" = "" ]; then
-                exit 1
-            fi
-
-            VERIEXEC_DBUS_SESSION_BUS_ADDRESS="$2"
-            shift
+        dbus-session-bus-address=*)
+            HOST_DBUS_SESSION_BUS_ADDRESS="${HOST_OPTION#*=}"
             ;;
-        --) shift; break ;;
-        -*) exit 1; ;;
-        *) break; ;;
+        --)
+            HOST_INDEX=$((HOST_INDEX+1))
+            break
+            ;;
+        *)
+            warn "Ignoring unknown option '${HOST_OPTION}'"
+            ;;
     esac
-    shift
-done
 
-if ! check_display "${VERIEXEC_DISPLAY}"; then
-    err "Invalid DISPLAY: ${VERIEXEC_DISPLAY}"
+    HOST_INDEX=$((HOST_INDEX+1))
+done
+shift $((HOST_INDEX-1))
+
+if ! check_display "${HOST_DISPLAY}"; then
+    err "Invalid DISPLAY: ${HOST_DISPLAY}"
     exit 1
 fi
 
@@ -202,13 +191,13 @@ export X11APPJAIL_EPHEMERAL=1
 
 set -- -- "$@"
 
-if [ -n "${VERIEXEC_DBUS_SESSION_BUS_ADDRESS}" ]; then
-    set -- --dbus-session-bus-address "${VERIEXEC_DBUS_SESSION_BUS_ADDRESS}" "$@"
+if [ -n "${HOST_DBUS_SESSION_BUS_ADDRESS}" ]; then
+    set -- --set-option "dbus-session-bus-address=${HOST_DBUS_SESSION_BUS_ADDRESS}" "$@"
 fi
 
-set -- --display "${VERIEXEC_DISPLAY}" "$@"
-set -- --uid "${UID}" "$@"
-set -- --gid "${GID}" "$@"
-set -- --dbus-system-bus-address "${VERIEXEC_DBUS_SYSTEM_BUS_ADDRESS}" "$@"
+set -- --set-option "display=${HOST_DISPLAY}" "$@"
+set -- --set-option "uid=${UID}" "$@"
+set -- --set-option "gid=${GID}" "$@"
+set -- --set-option "dbus-system-bus-address=${HOST_DBUS_SYSTEM_BUS_ADDRESS}" "$@"
 
 exec "${EXECUTABLE}" "$@"

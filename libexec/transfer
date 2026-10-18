@@ -38,14 +38,10 @@ OGID=`id -G "${DOAS_USER}" | tr ' ' ','` || exit 1
 
 load_common()
 {
-    local _s
-    _s=`which x11appjail` || exit ${EX_SOFTWARE}
-    _s=`dirname -- "${_s}"` || exit ${EX_SOFTWARE}
-    _s="${_s}/../lib/x11appjail"
+    local prefix
+    prefix=`x11appjail prefix` || exit 1
 
-    LIBDIR="${_s}"
-
-    . "${LIBDIR}/common"
+    . "${prefix}/lib/x11appjail/common"
 }
 
 check_appspec()

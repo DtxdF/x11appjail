@@ -878,11 +878,11 @@ run()
     build_libexec
 
     set -- -- "${app}" "$@"
-    set -- --display "${DISPLAY:-:0}" "$@"
-    set -- --dbus-system-bus-address "${DBUS_SYSTEM_BUS_ADDRESS:-unix:path=/var/run/dbus/system_bus_socket}" "$@"
+    set -- display="${DISPLAY:-:0}" "$@"
+    set -- dbus-system-bus-address="${DBUS_SYSTEM_BUS_ADDRESS:-unix:path=/var/run/dbus/system_bus_socket}" "$@"
 
     if [ -n "${DBUS_SESSION_BUS_ADDRESS}" ]; then
-        set -- --dbus-session-bus-address "${DBUS_SESSION_BUS_ADDRESS}" "$@"
+        set -- dbus-session-bus-address="${DBUS_SESSION_BUS_ADDRESS}" "$@"
     fi
 
     if ! printf "%s" "${app}" | grep -q '/'; then
@@ -1055,14 +1055,10 @@ _clean_exit()
 
 load_common()
 {
-    local _s
-    _s=`which x11appjail` || exit ${EX_SOFTWARE}
-    _s=`dirname -- "${_s}"` || exit ${EX_SOFTWARE}
-    _s="${_s}/../lib/x11appjail"
+    local prefix
+    prefix=`prefix` || exit 1
 
-    LIBDIR="${_s}"
-
-    . "${LIBDIR}/common"
+    . "${prefix}/lib/x11appjail/common"
 }
 
 usage()
