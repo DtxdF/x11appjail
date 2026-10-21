@@ -48,9 +48,8 @@ main()
     local cmd="$1"
 
     case "${cmd}" in
-        attr|clipboard|destroy-jail|init|list|login|prefix|print-display|run|run-cmd|service|transfer|trusted|verify) ;;
+        attr|build|clipboard|destroy-jail|init|list|login|prefix|print-display|run|run-cmd|service|transfer|trusted|verify) ;;
         version) version; exit 0 ;;
-        build) ;&
         trust) ;&
         untrust) ;&
         remove) ;&
@@ -62,14 +61,21 @@ main()
 
     atexit_init
 
-    if ${root_only} && ! iam_root; then
-        err "You need to be root to run this command."
-        exit ${EX_NOPERM}
+    if ${root_only}; then
+        check_root
     fi
 
     shift
 
     ${cmd} "$@"
+}
+
+check_root()
+{
+    if ! iam_root; then
+        err "You need to be root to run this command."
+        exit ${EX_NOPERM}
+    fi
 }
 
 attr()
@@ -633,6 +639,10 @@ build()
         esac
     done
     shift $((OPTIND-1))
+
+    if ! ${opt_optimized} || ! ${opt_shallow}; then
+        check_root
+    fi
 
     local path="$1"
 
