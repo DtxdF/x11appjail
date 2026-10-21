@@ -1,6 +1,5 @@
 NAME
-     x11appjail - Tool for creating, verifying, installing, and running
-     AppJails
+     x11appjail - FreeBSD application sandboxing and distribution framework
 
 SYNOPSIS
      x11appjail attr check attr
@@ -263,7 +262,9 @@ DESCRIPTION
 	  appspec, whereas in the second, it is performed from the host. If
 	  target is not specified, standard output is used.  source must be
 	  specified in the appspec:file format only if target is not
-	  specified.
+	  specified. A special value for appspec is <self>, to use the host
+	  explicitly and is useful when file contains the : character in the
+	  filename.
 
 	  File creation mode is set using the -m option.
 
