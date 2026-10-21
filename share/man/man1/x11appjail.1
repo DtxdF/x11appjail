@@ -424,7 +424,15 @@ must be specified in the
 .Ar appspec Ns : Ns Ar file
 format only if
 .Ar target
-is not specified.
+is not specified. A special value for
+.Ar appspec
+is
+.Sy <self> Ns ,
+to use the host explicitly and is useful when
+.Ar file
+contains the
+.Sy :
+character in the filename.
 .Pp
 File creation mode is set using the
 .Fl m

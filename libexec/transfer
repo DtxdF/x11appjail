@@ -68,10 +68,14 @@ if check_appspec "${FROM}"; then
     FROM_APPSPEC=`printf "%s" "${FROM}" | cut -d: -f1` || exit 1
     FROM_FILE=`printf "%s" "${FROM}" | cut -d: -f2-` || exit 1
 
-    build_appspec "${FROM_APPSPEC}"
+    if [ "${FROM_APPSPEC}" != "<self>" ]; then
+        build_appspec "${FROM_APPSPEC}"
 
-    FROM_APPNAME="${APPNAME}"
-    FROM_PROFILE="${PROFILE}"
+        FROM_APPNAME="${APPNAME}"
+        FROM_PROFILE="${PROFILE}"
+    else
+        unset FROM_APPSPEC
+    fi
 else
     FROM_FILE="${FROM}"
 fi
@@ -88,10 +92,14 @@ if [ -n "${TO}" ]; then
         TO_APPSPEC=`printf "%s" "${TO}" | cut -d: -f1` || exit 1
         TO_FILE=`printf "%s" "${TO}" | cut -d: -f2-` || exit 1
 
-        build_appspec "${TO_APPSPEC}"
+        if [ "${TO_APPSPEC}" != "<self>" ]; then
+            build_appspec "${TO_APPSPEC}"
 
-        TO_APPNAME="${APPNAME}"
-        TO_PROFILE="${PROFILE}"
+            TO_APPNAME="${APPNAME}"
+            TO_PROFILE="${PROFILE}"
+        else
+            unset TO_APPSPEC
+        fi
     else
         TO_FILE="${TO}"
     fi
