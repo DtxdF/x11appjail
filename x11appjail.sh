@@ -930,6 +930,22 @@ run()
 
 service()
 {
+    local _o
+    local oneshot=false
+
+    while getopts ":O" _o; do
+        case "${_o}" in
+            O)
+                oneshot=true
+                ;;
+            *)
+                usage
+                exit ${EX_USAGE}
+                ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
     local service="$1"
 
     if [ -z "${service}" ]; then
@@ -1051,6 +1067,10 @@ EOF
 
     while :; do
         run_cmd unixexec -D "${x11appjail_servicedir}" "sock" "${exec}" "${APPNAME}:${PROFILE}" "$@"
+
+        if ${oneshot}; then
+            return 0
+        fi
     done
 }
 

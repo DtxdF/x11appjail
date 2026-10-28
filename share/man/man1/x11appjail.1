@@ -95,7 +95,7 @@
 .Nm
 .Cm run-cmd Ar appspec Oo Ar args No "..." Oc
 .Nm
-.Cm service Ar service Ar appspec Oo Ar args No "..." Oc
+.Cm service Oo Fl O Oc Ar service Ar appspec Oo Ar args No "..." Oc
 .Nm
 .Cm transfer
 .Oo Fl m Ar mode Oc
@@ -401,7 +401,7 @@ will be used.
 This command will not work unless the jail has the
 .Sy meta.x11appjail.exec.user
 parameter set to the user under which the process will run.
-.It Cm service Ar service Ar appspec Oo Ar args No "..." Oc
+.It Cm service Oo Fl O Oc Ar service Ar appspec Oo Ar args No "..." Oc
 Configure a
 .Ar service
 in
@@ -409,6 +409,10 @@ in
 Refer to
 .Sx SERVICES
 for more details.
+.Bl -tag -width xx
+.It Fl O
+Run the service only once.
+.El
 .It Cm transfer Oo Fl m Ar mode Oc Ar source Oo Ar target Oc
 Securely transfer a file using
 .Xr jtransfer 1 Ns "."
