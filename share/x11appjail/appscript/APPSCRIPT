@@ -149,6 +149,9 @@ parse_option()
     local option="$1"
 
     case "${option}" in
+        nocache)
+            export NOCACHE=1
+            ;;
         profile=*)
             X11APPJAIL_PROFILE="${option#*=}"
             ;;
@@ -918,10 +921,13 @@ AppJail options:
   --cache
         Used by the caching system.
 
-  --set-option <option>=<value>
+  --set-option <option>[=<value>]
         (root only). Set an option.
 
         Options:
+
+          - nocache
+              Don't start the caching process at all.
 
           - profile=<profile>
               Profile name.
