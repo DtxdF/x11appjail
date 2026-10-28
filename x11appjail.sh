@@ -48,7 +48,7 @@ main()
     local cmd="$1"
 
     case "${cmd}" in
-        attr|build|clipboard|destroy-jail|init|list|login|prefix|print-display|run|run-cmd|service|transfer|trusted|verify) ;;
+        attr|build|clipboard|destroy-jail|init|list-instances|list|login|prefix|print-display|run|run-cmd|service|transfer|trusted|verify) ;;
         version) version; exit 0 ;;
         trust) ;&
         untrust) ;&
@@ -76,6 +76,30 @@ check_root()
         err "You need to be root to run this command."
         exit ${EX_NOPERM}
     fi
+}
+
+list-instances()
+{
+    local uid
+    uid=`id -u` || exit ${EX_SOFTWARE}
+
+    local regex
+    regex="^x11appjail-([a-zA-Z0-9][a-zA-Z0-9_-]*)-${uid}_([a-zA-Z0-9][a-zA-Z0-9_-]*)$"
+
+    jls name | while IFS= read -r jail; do
+        case "${jail}" in
+            x11appjail-*-${uid}_*) ;;
+            *) continue ;;
+        esac
+
+        appspec=`printf "%s" "${jail}" | sed -nEe "s/${regex}/\1:\2/p"` || exit ${EX_SOFTWARE}
+
+        if [ -z "${appspec}" ]; then
+            continue
+        fi
+
+        printf "%s\n" "${appspec}"
+    done || exit ${EX_SOFTWARE}
 }
 
 attr()
@@ -1085,6 +1109,7 @@ usage: x11appjail attr check <attr>
        x11appjail clipboard [-O] [-s <selection>] <appspec1> [<appspec2>]
        x11appjail destroy-jail <appspec>
        x11appjail init <pathname>
+       x11appjail list-instances
        x11appjail list
        x11appjail login <appspec>
        x11appjail prefix

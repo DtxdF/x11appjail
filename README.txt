@@ -13,6 +13,7 @@ SYNOPSIS
      x11appjail clipboard [-O] [-s selection] appspec1 [appspec2]
      x11appjail destroy-jail appspec
      x11appjail init pathname
+     x11appjail list-instances
      x11appjail list
      x11appjail login appspec
      x11appjail prefix
@@ -208,6 +209,9 @@ DESCRIPTION
 	  created files contain comments.
 
 	  This command refuses to create the directory if it already exists.
+
+     list-instances
+	  List the current jails in the appspec format.
 
      list
 	  List all installed AppJails.
