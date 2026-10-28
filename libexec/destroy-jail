@@ -68,3 +68,5 @@ if appjail status -q -- "${JAIL}" > /dev/null 2>&1; then
 fi
 
 appjail jail destroy -Rf -- "${JAIL}" > /dev/null 2>&1
+
+exit 0
