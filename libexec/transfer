@@ -44,9 +44,48 @@ load_common()
     . "${prefix}/lib/x11appjail/common"
 }
 
-check_appspec()
+check_syntax1()
+{
+    printf "%s" "$1" | grep -qEe '^[^:]+:[^@]+@.*$'
+}
+
+check_syntax2()
 {
     printf "%s" "$1" | grep -qEe '^[^:]+:.*$'
+}
+
+parse_syntax()
+{
+    _APPSPEC=
+    _FILE=
+    _APPNAME=
+    _PROFILE=
+
+    if check_syntax1 "$1"; then
+        _APPSPEC=`printf "%s" "$1" | cut -d@ -f1` || exit 1
+        _FILE=`printf "%s" "$1" | cut -d@ -f2-` || exit 1
+    elif check_syntax2 "$1"; then
+        _APPSPEC=`printf "%s" "$1" | cut -d: -f1` || exit 1
+        _FILE=`printf "%s" "$1" | cut -d: -f2-` || exit 1
+
+        if [ "${_APPSPEC}" = "<self>" ]; then
+            unset _APPSPEC
+        fi
+    else
+        _FILE="$1"
+    fi
+
+    if [ -n "${_APPSPEC}" ]; then
+        build_appspec "${_APPSPEC}"
+
+        _APPNAME="${APPNAME}"
+        _PROFILE="${PROFILE}"
+    fi
+}
+
+run_as()
+{
+    mdo -u "${UID}" -g "${GID}" -G "${OGID}" -- "$@"
 }
 
 load_common
@@ -59,55 +98,34 @@ FROM="$2"
 
 test -n "${FROM}" || exit 1
 
-FROM_APPSPEC=
-FROM_FILE=
-FROM_APPNAME=
-FROM_PROFILE=
+parse_syntax "${FROM}"
 
-if check_appspec "${FROM}"; then
-    FROM_APPSPEC=`printf "%s" "${FROM}" | cut -d: -f1` || exit 1
-    FROM_FILE=`printf "%s" "${FROM}" | cut -d: -f2-` || exit 1
+FROM_APPSPEC="${_APPSPEC}"
+FROM_FILE="${_FILE}"
+FROM_APPNAME="${_APPNAME}"
+FROM_PROFILE="${_PROFILE}"
 
-    if [ "${FROM_APPSPEC}" != "<self>" ]; then
-        build_appspec "${FROM_APPSPEC}"
-
-        FROM_APPNAME="${APPNAME}"
-        FROM_PROFILE="${PROFILE}"
-    else
-        unset FROM_APPSPEC
-    fi
-else
-    FROM_FILE="${FROM}"
+if [ -z "${FROM_FILE}" ]; then
+    err "Source file must be defined."
+    exit 1
 fi
 
 TO="$3"
 
-TO_APPSPEC=
-TO_FILE=
-TO_APPNAME=
-TO_PROFILE=
+parse_syntax "${TO}"
 
-if [ -n "${TO}" ]; then
-    if check_appspec "${TO}"; then
-        TO_APPSPEC=`printf "%s" "${TO}" | cut -d: -f1` || exit 1
-        TO_FILE=`printf "%s" "${TO}" | cut -d: -f2-` || exit 1
+TO_APPSPEC="${_APPSPEC}"
+TO_FILE="${_FILE}"
+TO_APPNAME="${_APPNAME}"
+TO_PROFILE="${_PROFILE}"
 
-        if [ "${TO_APPSPEC}" != "<self>" ]; then
-            build_appspec "${TO_APPSPEC}"
+if [ -z "${FROM_APPSPEC}" -a -z "${TO_APPSPEC}" ]; then
+    err "Source must be defined."
+    exit 1
+fi
 
-            TO_APPNAME="${APPNAME}"
-            TO_PROFILE="${PROFILE}"
-        else
-            unset TO_APPSPEC
-        fi
-    else
-        TO_FILE="${TO}"
-    fi
-else
-    if [ -z "${FROM_APPSPEC}" ]; then
-        err "Source must be defined to continue."
-        exit 1
-    fi
+if [ -n "${TO_APPSPEC}" ] && [ -z "${TO_FILE}" ]; then
+    TO_FILE=`basename -- "${FROM_FILE}"` || exit 1
 fi
 
 if [ -n "${FROM_APPSPEC}" -a -n "${FROM_FILE}" ]; then
@@ -116,8 +134,7 @@ if [ -n "${FROM_APPSPEC}" -a -n "${FROM_FILE}" ]; then
         -j "x11appjail-${FROM_APPNAME}-${UID}_${FROM_PROFILE}" \
         -f "${FROM_FILE}" || exit 1
 else
-    mdo -u "${UID}" -g "${GID}" -G "${OGID}" \
-        cat -- "${FROM_FILE}" || exit 1
+    run_as cat -- "${FROM_FILE}" || exit 1
 fi |\
 if [ -n "${TO_APPSPEC}" -a -n "${TO_FILE}" ]; then
     jtransfer -w \
@@ -126,8 +143,7 @@ if [ -n "${TO_APPSPEC}" -a -n "${TO_FILE}" ]; then
         -j "x11appjail-${TO_APPNAME}-${UID}_${TO_PROFILE}" \
         -f "${TO_FILE}" || exit 1
 elif [ -n "${TO_FILE}" ]; then
-    mdo -u "${UID}" -g "${GID}" -G "${GID}" \
-        tee -- "${TO_FILE}" > /dev/null || exit 1
+    run_as tee -- "${TO_FILE}" > /dev/null || exit 1
 else
-    cat -u || exit 1
+    cat || exit 1
 fi

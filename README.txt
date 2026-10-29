@@ -263,14 +263,30 @@ DESCRIPTION
      transfer [-m mode] source [target]
 	  Securely transfer a file using jtransfer(1).
 
-	  source and target can be defined as appspec:file or file. In the
-	  first case, the operation is performed using the file within
-	  appspec, whereas in the second, it is performed from the host. If
-	  target is not specified, standard output is used.  source must be
-	  specified in the appspec:file format only if target is not
-	  specified. A special value for appspec is <self>, to use the host
-	  explicitly and is useful when file contains the : character in the
-	  filename.
+	  source and target support various syntaxes:
+
+	   file
+	       Specify that the file is local.
+
+	       You cannot specify a file as local in both source and target.
+
+	   <self>:file
+	       Same as above, but this is useful when the filename contains
+	       the : character, which could be misinterpreted.
+
+	   appname:file
+	       If it is source, it specifies that the file comes from appname
+	       and uses default as the profile. If it is target, it specifies
+	       the destination file and uses default as the profile. If it is
+	       target and no file is specified, it uses the filename specified
+	       in source.
+
+	   appspec:@file
+	       Same as above, but you can specify a profile. See PROFILES for
+	       details.
+
+	  If target is not specified, the file's contents are displayed via
+	  stdout.
 
 	  File creation mode is set using the -m option.
 
