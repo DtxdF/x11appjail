@@ -204,7 +204,11 @@ parse_option()
             ;;
         gid=*)
             GID="${option#*=}"
-            GID=`id -g -- "${GID}"` || exit 1
+
+            if ! getent group "${GID}" > /dev/null; then
+                err "${GID}: no such group"
+                exit 1
+            fi
 
             export X11APPJAIL_GID="${GID}"
             ;;
