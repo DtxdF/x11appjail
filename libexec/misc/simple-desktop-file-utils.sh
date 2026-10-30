@@ -71,7 +71,8 @@ fi
 ICON="${X11APPJAIL_WORKDIR}/${APPNAME}.png"
 DESKTOPFILE="${X11APPJAIL_WORKDIR}/${APPNAME}.desktop"
 APPSDIR="${X11APPJAIL_PREFIX}/share/applications"
-USER_ICON="${X11APPJAIL_PREFIX}/share/pixmaps/x11appjail-${X11APPJAIL_PROFILE}-${APPNAME}.png"
+USER_ICONDIR="${X11APPJAIL_PREFIX}/share/pixmaps"
+USER_ICON="${USER_ICONDIR}/x11appjail-${X11APPJAIL_PROFILE}-${APPNAME}.png"
 USER_DESKTOPFILE="${APPSDIR}/x11appjail-${X11APPJAIL_PROFILE}-${APPNAME}.desktop"
 
 if [ "${PHASE}" = "I" ]; then
@@ -79,6 +80,13 @@ if [ "${PHASE}" = "I" ]; then
         EXEC="x11appjail run ${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}"
     else
         EXEC="x11appjail run ${X11APPJAIL_HOMEDIR}/.x11appjail/apps/${X11APPJAIL_APPNAME}.AppJail"
+    fi
+
+    if [ ! -d "${USER_ICONDIR}" ]; then
+        mkdir -p -- "${USER_ICONDIR}"
+    fi
+    if [ ! -d "${APPSDIR}" ]; then
+        mkdir -p -- "${APPSDIR}"
     fi
 
     install -o "${UID}" -g "${GID}" -m 644 -- "${ICON}" \
