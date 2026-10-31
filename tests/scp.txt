@@ -1,9 +1,5 @@
-./keys
-./keys/key.sec
-./keys/key.pub
 ./keys/genkey.sh
 ./x11appjail_build_test
-./atf-test
 ./atf-test/create
 ./atf-test/run
 ./atf-test/X
