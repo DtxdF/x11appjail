@@ -1,0 +1,18 @@
+ARG puid
+ARG pgid
+ARG appname
+ARG profile
+
+OPTION start
+OPTION overwrite=force
+OPTION import+root=input:./image portable
+OPTION volume=data mountpoint:/var/x11appjail/users/${puid}/${appname}.${profile} owner:${puid} group:${pgid}
+OPTION template=template.conf
+OPTION meta=x11appjail.exec.user:noroot
+OPTION x11
+
+CMD datadir="/var/x11appjail/users/${puid}/${appname}.${profile}" && \
+    pw groupadd -n noroot -g "${pgid}" && \
+    pw useradd -n noroot -d "${datadir}" -u "${puid}" -g "${pgid}" && \
+    mkdir -p -- "${datadir}" && \
+    chown -R noroot:noroot "${datadir}"

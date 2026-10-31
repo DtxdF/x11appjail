@@ -1,0 +1,433 @@
+#!/usr/bin/env atf-sh
+# vim: set filetype=sh :
+
+set -e -o pipefail
+
+APPJAIL_FILENAME="atf-test.AppJail"
+APPJAIL_VENDORID="tests@example.org"
+APPJAIL_APPNAME="atf-test"
+
+atf_test_case "run" "cleanup"
+run_head()
+{
+    atf_set descr "Verifies that an AppJail running in portable mode creates a jail as an unprivileged user"
+
+    init_common_head
+}
+
+run_body()
+{
+    srcdir="$(atf_get_srcdir)"
+    user="$(atf_config_get unprivileged-user)"
+    appjail="${srcdir}/${APPJAIL_FILENAME}"
+
+    atf_check -s not-exit:0 -e "inline:${appjail}: Permission denied.\n" \
+        mdo -u "${user}" sh -c "${appjail} true < /dev/null"
+
+    init_common_body
+
+    atf_check -s exit:0 -o ignore -e ignore \
+        mdo -u "${user}" sh -c "${appjail} true < /dev/null"
+    atf_check -s exit:0 -o ignore -e ignore \
+        mdo -u "${user}" sh -c "x11appjail run ${appjail} true < /dev/null"
+    atf_check -s not-exit:0 -o ignore -e ignore \
+        mdo -u "${user}" sh -c "x11appjail run ${appjail} false < /dev/null"
+    atf_check -s exit:0 -o "inline:1" \
+        mdo -u "${user}" sh -c "x11appjail run-cmd ${APPJAIL_APPNAME} echo -n 1 < /dev/null"
+    atf_check -s exit:0 -o "match:^[0-9]+$" \
+        mdo -u "${user}" x11appjail print-display "${APPJAIL_APPNAME}"
+    atf_check -s exit:0 -o save:list-instances.out \
+        mdo -u "${user}" x11appjail list-instances
+    atf_check -s exit:0 -o "inline:${APPJAIL_APPNAME}:default\n" \
+        grep -Ee "^${APPJAIL_APPNAME}:default$" list-instances.out
+    atf_check -s exit:0 -o ignore -e ignore \
+        mdo -u "${user}" x11appjail destroy-jail "${APPJAIL_APPNAME}"
+    atf_check -s exit:0 -o save:list-instances.out \
+        mdo -u "${user}" x11appjail list-instances
+    atf_check -s not-exit:0 -o empty \
+        grep -Ee "^${APPJAIL_APPNAME}:default$" list-instances.out
+}
+
+run_cleanup()
+{
+    user="$(atf_config_get unprivileged-user)"
+
+    mdo -u "${user}" \
+        x11appjail destroy-jail "${APPJAIL_APPNAME}" > /dev/null 2>&1 || :
+    end_common
+}
+
+atf_test_case "run_installed" "cleanup"
+run_installed_head()
+{
+    atf_set descr "Verifies that an installed AppJail creates a jail as an unprivileged user"
+
+    init_common_head
+}
+
+run_installed_body()
+{
+    init_common_body
+
+    appjail="${srcdir}/${APPJAIL_FILENAME}"
+
+    atf_check -s exit:0 -o ignore -e ignore \
+        sh -c "${appjail} --install < /dev/null"
+    atf_check -s exit:0 -o ignore -e ignore \
+        sh -c "${appjail} --install --set-option profile=test < /dev/null"
+    atf_check -s exit:0 -o save:list.out \
+        x11appjail list
+    atf_check -s exit:0 \
+        grep -qEe "^${APPJAIL_APPNAME}[[:space:]]+default[[:space:]]+[0-9]+(\.[0-9]+)?[A-Z]$" list.out
+    atf_check -s exit:0 \
+        grep -qEe "^${APPJAIL_APPNAME}[[:space:]]+test[[:space:]]+[0-9]+(\.[0-9]+)?[A-Z]$" list.out
+    atf_check -s exit:0 -o ignore -e ignore \
+        mdo -u "${user}" sh -c "x11appjail run ${APPJAIL_APPNAME} true < /dev/null"
+    atf_check -s not-exit:0 -o ignore -e ignore \
+        mdo -u "${user}" sh -c "x11appjail run ${APPJAIL_APPNAME}:test false < /dev/null"
+    atf_check -s exit:0 -o "inline:1" \
+        mdo -u "${user}" sh -c "x11appjail run-cmd ${APPJAIL_APPNAME} echo -n 1 < /dev/null"
+    atf_check -s exit:0 -o "match:^[0-9]+$" \
+        mdo -u "${user}" x11appjail print-display "${APPJAIL_APPNAME}"
+    atf_check -s exit:0 -o save:list-instances.out \
+        mdo -u "${user}" x11appjail list-instances
+    atf_check -s exit:0 \
+        grep -qEe "^${APPJAIL_APPNAME}:default$" list-instances.out
+    atf_check -s exit:0 \
+        grep -qEe "^${APPJAIL_APPNAME}:test$" list-instances.out
+    atf_check -s exit:0 -o ignore -e ignore \
+        x11appjail remove "${APPJAIL_APPNAME}"
+    atf_check -s exit:0 -o ignore -e ignore \
+        x11appjail remove "${APPJAIL_APPNAME}:test"
+    atf_check -s exit:0 -o save:list-instances.out \
+        mdo -u "${user}" x11appjail list-instances
+    atf_check -s not-exit:0 -o empty \
+        grep -Ee "^${APPJAIL_APPNAME}:default$" list-instances.out
+    atf_check -s not-exit:0 -o empty \
+        grep -Ee "^${APPJAIL_APPNAME}:test$" list-instances.out
+    atf_check -s exit:0 -o save:list.out \
+        x11appjail list
+    atf_check -s not-exit:0 -o empty \
+        grep -qEe "^${APPJAIL_APPNAME}[[:space:]]+default[[:space:]]+[0-9]+(\.[0-9]+)?[A-Z]$" list.out
+    atf_check -s not-exit:0 -o empty \
+        grep -qEe "^${APPJAIL_APPNAME}[[:space:]]+test[[:space:]]+[0-9]+(\.[0-9]+)?[A-Z]$" list.out
+}
+
+run_installed_cleanup()
+{
+    x11appjail remove "${APPJAIL_APPNAME}" > /dev/null 2>&1 || :
+    x11appjail remove "${APPJAIL_APPNAME}:test" > /dev/null 2>&1 || :
+    end_common
+}
+
+atf_test_case "clipboard" "cleanup"
+clipboard_head()
+{
+    atf_set descr "Verifies that clipboard synchronization works"
+
+    init_common_head
+}
+
+clipboard_body()
+{
+    AB_test_init
+
+    atf_check -s exit:0 -o empty \
+        mdo -u "${user}" sh -c "echo -n test | xclip -selection CLIPBOARD"
+    A_display=$(head -1 -- A_display.out)
+    atf_check -s exit:0 -o empty \
+        mdo -u "${user}" x11appjail clipboard -O atf-test:A
+    atf_check -s exit:0 -o "inline:test" \
+        mdo -u "${user}" xclip -selection CLIPBOARD -display ":${A_display}" -out
+    atf_check -s exit:0 -o empty \
+        mdo -u "${user}" x11appjail clipboard -O atf-test:A atf-test:B
+    B_display=$(head -1 -- B_display.out)
+    atf_check -s exit:0 -o "inline:test" \
+        mdo -u "${user}" xclip -selection CLIPBOARD -display ":${B_display}" -out
+}
+
+clipboard_cleanup()
+{
+    AB_test_end
+}
+
+atf_test_case "transfer" "cleanup"
+transfer_head()
+{
+    atf_set descr "Verifies that file synchronization works"
+
+    init_common_head
+}
+
+transfer_body()
+{
+    AB_test_init
+
+    uid=$(id -u "${user}")
+
+    chown "${user}" .
+
+    atf_check -s exit:0 -o "inline:test" \
+        sh -c "echo -n test | tee test.out"
+    atf_check -s exit:0 -o empty \
+        mdo -u "${user}" x11appjail transfer test.out "${APPJAIL_APPNAME}:A@"
+    atf_check -s exit:0 -o "inline:test" \
+        cat "/var/x11appjail/users/${uid}/${APPJAIL_APPNAME}.A/test.out"
+    atf_check -s exit:0 -o "inline:test" \
+        mdo -u "${user}" x11appjail run-cmd "${APPJAIL_APPNAME}:A" cat test.out
+    atf_check -s exit:0 -o "inline:test" \
+        mdo -u "${user}" x11appjail transfer "${APPJAIL_APPNAME}:A@test.out"
+    atf_check -s exit:0 -o empty \
+        mdo -u "${user}" x11appjail transfer "${APPJAIL_APPNAME}:A@test.out" test-again.out
+    atf_check -s exit:0 -o "inline:test" \
+        cat test-again.out
+    atf_check -s exit:0 -o empty \
+        mdo -u "${user}" x11appjail transfer "${APPJAIL_APPNAME}:A@test.out" "${APPJAIL_APPNAME}:B@"
+    atf_check -s exit:0 -o "inline:test" \
+        cat "/var/x11appjail/users/${uid}/${APPJAIL_APPNAME}.B/test.out"
+    atf_check -s exit:0 -o "inline:test" \
+        mdo -u "${user}" x11appjail run-cmd "${APPJAIL_APPNAME}:B" cat test.out
+    atf_check -s exit:0 -o "inline:test" \
+        mdo -u "${user}" x11appjail transfer "${APPJAIL_APPNAME}:B@test.out"
+    atf_check -s exit:0 -o ignore -e ignore \
+        sh -c "${appjail} --install < /dev/null"
+    atf_check -s exit:0 -o ignore -e ignore \
+        mdo -u "${user}" sh -c "x11appjail run ${APPJAIL_APPNAME} true < /dev/null"
+    atf_check -s exit:0 -o empty \
+        mdo -u "${user}" x11appjail transfer test.out "${APPJAIL_APPNAME}:"
+    atf_check -s exit:0 -o "inline:test" \
+        cat "/var/x11appjail/users/${uid}/${APPJAIL_APPNAME}.default/test.out"
+    atf_check -s exit:0 -o "inline:test" \
+        mdo -u "${user}" x11appjail run-cmd "${APPJAIL_APPNAME}" cat test.out
+    atf_check -s exit:0 -o "inline:test" \
+        mdo -u "${user}" x11appjail transfer "${APPJAIL_APPNAME}:test.out"
+    atf_check -s exit:0 -o empty \
+        mdo -u "${user}" x11appjail transfer "${APPJAIL_APPNAME}:test.out" test-again.out
+    atf_check -s exit:0 -o "inline:test" \
+        cat test-again.out
+    atf_check -s exit:1 -e "inline:###> Source must be defined.\n" \
+        mdo -u "${user}" x11appjail transfer test.out
+    atf_check -s exit:1 -e "inline:cat: nonexistent: No such file or directory\n" \
+        mdo -u "${user}" x11appjail transfer nonexistent "${APPJAIL_APPNAME}:"
+    atf_check -s exit:1 -e "inline:jtransfer: open(): /invalid/path: No such file or directory\n" \
+        mdo -u "${user}" x11appjail transfer "${APPJAIL_APPNAME}:/invalid/path"
+}
+
+transfer_cleanup()
+{
+    user="$(atf_config_get unprivileged-user)"
+    uid=$(id -u "${user}")
+
+    rm -f "/var/x11appjail/users/${uid}/${APPJAIL_APPNAME}.A/test.out"
+    rm -f "/var/x11appjail/users/${uid}/${APPJAIL_APPNAME}.B/test.out"
+
+    AB_test_end
+
+    x11appjail remove "${APPJAIL_APPNAME}" > /dev/null 2>&1 || :
+}
+
+atf_test_case "service" "cleanup"
+service_head()
+{
+    atf_set descr "Verifies that a jail can use a service correctly"
+
+    init_common_head
+}
+
+service_body()
+{
+    prefix=$(x11appjail prefix)
+
+    init_common_body
+
+    chown "${user}" .
+
+    uid=$(id -u "${user}")
+    appjail="${srcdir}/${APPJAIL_FILENAME}"
+
+    atf_check -s exit:0 -o ignore -e ignore \
+        mdo -u "${user}" sh -c "x11appjail run ${appjail} true < /dev/null"
+
+    cookie=$(openssl rand -base64 8)
+
+    mkdir test-service
+
+    cat << EOF > "test-service/setup"
+#!/bin/sh
+
+set -e -o pipefail
+
+echo "${cookie}" > cookie.txt
+
+exit 0
+EOF
+
+    chmod +x "test-service/setup"
+
+    cat << "EOF" > "test-service/exec"
+#!/bin/sh
+
+set -e -o pipefail
+
+load_common()
+{
+    local prefix
+    prefix=`x11appjail prefix` || exit 1
+
+    . "${prefix}/lib/x11appjail/common"
+}
+
+load_common
+
+APPSPEC="$1"
+
+build_appspec "${APPSPEC}"
+
+shift
+
+COOKIE="$1"
+
+shift
+
+read USER_COOKIE
+
+exec test "${COOKIE}" = "${USER_COOKIE}"
+EOF
+
+    chmod +x "test-service/exec"
+
+    cat << "EOF" > "test-service/agent"
+#!/bin/sh
+
+set -e -o pipefail
+
+ME=`readlink -f -- "$0"`
+SELF=`dirname -- "${ME}"`
+SOCKET="${SELF}/sock"
+
+test -S "${SOCKET}"
+
+COOKIE=$(cat ~/cookie.txt)
+
+printf "%s\n" "${COOKIE}" | nc -U "${SOCKET}"
+EOF
+
+    chmod +x "test-service/agent"
+
+    mkdir -p -- "${prefix}/etc/x11appjail/service.d"
+
+    cp -a "test-service" "${prefix}/etc/x11appjail/service.d"
+
+    atf_check -s exit:0 -o ignore -e ignore \
+        daemon -u "${user}" -p service.pid x11appjail service -O test-service "${APPJAIL_APPNAME}" "${cookie}"
+    atf_check -r 10:1000 -s exit:0 -o empty test -S "/var/x11appjail/users/${uid}/${APPJAIL_APPNAME}.default/.x11appjail-services/test-service/sock"
+    atf_check -s exit:0 \
+        mdo -u "${user}" x11appjail run-cmd "${APPJAIL_APPNAME}" /var/x11appjail/users/${uid}/${APPJAIL_APPNAME}.default/.x11appjail-services/test-service/agent
+}
+
+service_cleanup()
+{
+    prefix=$(x11appjail prefix)
+    user="$(atf_config_get unprivileged-user)"
+    uid=$(id -u "${user}")
+
+    if [ -f service.pid ]; then
+        service_pid=$(head -1 -- service.pid)
+
+        kill ${service_pid} > /dev/null 2>&1 || :
+    fi
+
+    mdo -u "${user}" \
+        x11appjail destroy-jail "${APPJAIL_APPNAME}" > /dev/null 2>&1 || :
+
+    rm -rf -- "/var/x11appjail/users/${uid}/${APPJAIL_APPNAME}.default/.x11appjail-services/test-service"
+    rm -rf -- "${prefix}/etc/x11appjail/service.d/test-service"
+
+    end_common
+}
+
+AB_test_init()
+{
+    init_common_body
+
+    appjail="${srcdir}/${APPJAIL_FILENAME}"
+
+    atf_check -s exit:0 -o ignore -e ignore \
+        sh -c "${appjail} --install --set-option profile=A < /dev/null"
+    atf_check -s exit:0 -o ignore -e ignore \
+        sh -c "${appjail} --install --set-option profile=B < /dev/null"
+    atf_check -s exit:0 -o save:list.out \
+        x11appjail list
+    for profile in A B; do
+        atf_check -s exit:0 \
+            grep -qEe "^${APPJAIL_APPNAME}[[:space:]]+${profile}[[:space:]]+[0-9]+(\.[0-9]+)?[A-Z]$" list.out
+    done
+    atf_check -s exit:0 -o ignore -e ignore \
+        mdo -u "${user}" sh -c "x11appjail run ${APPJAIL_APPNAME}:A true < /dev/null"
+    atf_check -s exit:0 -o ignore -e ignore \
+        mdo -u "${user}" sh -c "x11appjail run ${APPJAIL_APPNAME}:B true < /dev/null"
+    atf_check -s exit:0 -o "match:^[0-9]+$" -o save:A_display.out \
+        mdo -u "${user}" x11appjail print-display "${APPJAIL_APPNAME}:A"
+    atf_check -s exit:0 -o "match:^[0-9]+$" -o save:B_display.out \
+        mdo -u "${user}" x11appjail print-display "${APPJAIL_APPNAME}:B"
+}
+
+AB_test_end()
+{
+    x11appjail remove "${APPJAIL_APPNAME}:A" > /dev/null 2>&1 || :
+    x11appjail remove "${APPJAIL_APPNAME}:B" > /dev/null 2>&1 || :
+
+    end_common
+}
+
+init_common_head()
+{
+    srcdir="$(atf_get_srcdir)"
+
+    atf_set require.user "root"
+    atf_set require.files "${srcdir}/${APPJAIL_FILENAME} ${srcdir}/keys/key.pub"
+    atf_set require.config "unprivileged-user display"
+}
+
+init_common_body()
+{
+    srcdir="$(atf_get_srcdir)"
+    public_key="${srcdir}/keys/key.pub"
+    user="$(atf_config_get unprivileged-user)"
+    display="$(atf_config_get display)"
+
+    export DISPLAY=":${display}"
+
+    atf_check -s exit:0 -o not-empty -o save:homedir.out \
+        sh -c "set -e -o pipefail; pw usershow -n ${user} | cut -d: -f9"
+
+    homedir=$(head -1 -- homedir.out)
+    export XAUTHORITY="${homedir}/.Xauthority"
+
+    atf_check -s exit:0 -o empty -e ignore \
+        mdo -u "${user}" xauth add "${DISPLAY}" MIT-MAGIC-COOKIE-1 $(openssl rand -hex 16)
+    atf_check -s exit:0 -o ignore -e ignore \
+        daemon -u "${user}" -p x.pid Xvfb "${DISPLAY}" -screen 0 1280x1024x24 -auth "${XAUTHORITY}"
+    atf_check -r 5:1000 -s exit:0 -o empty test -S "/tmp/.X11-unix/X${display}"
+    atf_check -s exit:0 -o empty \
+        x11appjail trust "${APPJAIL_VENDORID}" "${public_key}"
+}
+
+end_common()
+{
+    if [ -f x.pid ]; then
+        xpid=$(head -1 -- x.pid)
+
+        kill ${xpid} > /dev/null 2>&1 || :
+    fi
+    x11appjail untrust "${APPJAIL_VENDORID}" > /dev/null 2>&1 || :
+}
+
+atf_init_test_cases()
+{
+    atf_add_test_case run
+    atf_add_test_case run_installed
+    atf_add_test_case clipboard
+    atf_add_test_case transfer
+    atf_add_test_case service
+}

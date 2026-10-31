@@ -1,0 +1,83 @@
+#!/usr/bin/env atf-sh
+# vim: set filetype=sh :
+
+set -e -o pipefail
+
+atf_test_case "attributes" "cleanup"
+attributes_head()
+{
+    atf_set descr "Verifies that User Attributes are created correctly"
+    atf_set require.user "unprivileged"
+    atf_set X-attr "atf.tests.x11appjail"
+    atf_set X-attr-val "This is a test"
+    atf_set X-attr-regex "atf\.tests\.x11appjail"
+}
+
+attributes_body()
+{
+    attr=$(atf_get X-attr)
+    val=$(atf_get X-attr-val)
+    attr_regex=$(atf_get X-attr-regex)
+    user="$(atf_config_get unprivileged-user)"
+
+    if x11appjail attr check "${attr}"; then
+        atf_fail "User attribute ${attr} already exists (cleanup routine failed?)."
+    fi
+
+    atf_check -s exit:0 x11appjail attr put "${attr}" "${val}"
+    atf_check -s exit:0 -o "inline:${val}\n" x11appjail attr cat "${attr}"
+    atf_check -s exit:0 -o save:list.out x11appjail attr ls
+    atf_check -s exit:0 -o "inline:${attr}\n" grep -Ee "^${attr_regex}$" list.out
+    atf_check -s exit:0 x11appjail attr check "${attr}"
+    atf_check -s exit:0 x11appjail attr rm "${attr}"
+    atf_check -s not-exit:0 x11appjail attr check "${attr}"
+    atf_check -s exit:0 -o save:list.out x11appjail attr ls
+    atf_check -s not-exit:0 -o empty grep -Ee "^${attr_regex}$" list.out
+}
+
+attributes_cleanup()
+{
+    x11appjail attr rm $(atf_get X-attr) > /dev/null 2>&1 || :
+}
+
+atf_test_case "system_attributes" "cleanup"
+system_attributes_head()
+{
+    atf_set descr "Verifies that System Attributes are created correctly"
+    atf_set require.user "root"
+    atf_set X-attr "atf.tests.x11appjail"
+    atf_set X-attr-val "This is a test"
+    atf_set X-attr-regex "atf\.tests\.x11appjail"
+}
+
+system_attributes_body()
+{
+    attr=$(atf_get X-attr)
+    val=$(atf_get X-attr-val)
+    attr_regex=$(atf_get X-attr-regex)
+
+    if x11appjail sys-attr check "${attr}"; then
+        atf_fail "System attribute ${attr} already exists (cleanup routine failed?)."
+    fi
+
+    atf_check -s exit:0 x11appjail sys-attr put "${attr}" "${val}"
+    atf_check -s exit:0 -o "inline:${val}\n" x11appjail sys-attr cat "${attr}"
+    atf_check -s exit:0 -o save:list.out x11appjail sys-attr ls
+    atf_check -s exit:0 -o "inline:${attr}\n" grep -Ee "^${attr_regex}$" list.out
+    atf_check -s exit:0 x11appjail sys-attr check "${attr}"
+    atf_check -s exit:0 x11appjail sys-attr rm "${attr}"
+    atf_check -s not-exit:0 x11appjail sys-attr check "${attr}"
+    atf_check -s exit:0 -o save:list.out x11appjail attr ls
+    atf_check -s not-exit:0 -o empty grep -Ee "^${attr_regex}$" list.out
+}
+
+system_attributes_cleanup()
+{
+    x11appjail sys-attr rm $(atf_get X-attr) > /dev/null 2>&1 || :
+}
+
+atf_init_test_cases()
+{
+    atf_add_test_case attributes
+    atf_add_test_case system_attributes
+}

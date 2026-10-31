@@ -1,0 +1,8 @@
+
+syntax(2)
+
+test_suite("x11appjail")
+
+atf_test_program{name="x11appjail_attr_test",}
+atf_test_program{name="x11appjail_build_test",}
+atf_test_program{name="x11appjail_run_test",}

@@ -1,0 +1,173 @@
+kind: vmJail
+datacenters:
+  main:
+    entrypoint: !ENV '${ENTRYPOINT:http://127.0.0.1:8888}'
+    access_token: !ENV '${TOKEN:invalid_token}'
+deployIn:
+  labels:
+    - !ENV '${WHERE:nonexistent}'
+vmName: 'x11appjail-tests'
+makejail: 'gh+DtxdF/vm-makejail'
+overwrite: true
+build-arguments:
+  - is_public_vm: '1'
+  - exclude_ports: '10000:65535'
+poweroff: true
+options:
+  - fstab: '/var/cache/pkg /var/cache/pkg'
+  - priority: '5'
+  - label: 'security-group:1'
+  - label: 'security-group.tables.allow-dns:allow-dns'
+  - ephemeral:
+template:
+  loader: 'bhyveload'
+  cpu: !ENV '${NCPU:1}'
+  memory: !ENV '${MEMORY:2G}'
+  network0_type: 'virtio-net'
+  network0_switch: 'public'
+  wired_memory: 'YES'
+  virt_random: 'YES'
+diskLayout:
+  driver: 'nvme'
+  size: !ENV '${STORAGE:20G}'
+  from:
+    type: pkgbase
+    packages:
+      - FreeBSD-set-base
+      - FreeBSD-kernel-generic
+      - FreeBSD-tests
+      - atf
+      - xlibre-vfb
+    osArch: amd64
+    osVersion: !ENV '${FBSDVER:15}'
+    pkgConf: !ENV '${PWD}/pkgRepos'
+  disk:
+    scheme: 'gpt'
+    partitions:
+      - type: 'freebsd-boot'
+        size: '512k'
+        alignment: '1m'
+      - type: 'freebsd-swap'
+        size: !ENV '${SWAP:2G}'
+        alignment: '1m'
+      - type: 'freebsd-ufs'
+        alignment: '1m'
+        format:
+          script: |
+            set -xe -o pipefail
+
+            if [ "${OVERLORD_PHASE}" = "format" ]; then
+              newfs -Uj "${OVERLORD_DEVICE}"
+            elif [ "${OVERLORD_PHASE}" = "mount" ]; then
+              mount "${OVERLORD_DEVICE}" "${OVERLORD_MNTDIR}"
+              mkdir -p "${OVERLORD_MNTDIR}/var/cache/pkg"
+              mount -t nullfs "/var/cache/pkg" "${OVERLORD_MNTDIR}/var/cache/pkg"
+            elif [ "${OVERLORD_PHASE}" = "umount" ]; then
+              umount "${OVERLORD_MNTDIR}/var/cache/pkg"
+              umount "${OVERLORD_MNTDIR}"
+            fi
+    bootcode:
+      bootcode: '/boot/pmbr'
+      partcode: '/boot/gptboot'
+      index: 1
+  fstab:
+    - device: '/dev/nda0p3'
+      mountpoint: '/'
+      type: 'ufs'
+      options: 'rw'
+      dump: 1
+      pass: 1
+    - device: '/dev/nda0p2'
+      mountpoint: 'none'
+      type: 'swap'
+      options: 'sw'
+      dump: 0
+      pass: 0
+script-environment:
+  - HOSTNAME: !ENV '${HOSTNAME:x11appjail-tests.lan}'
+  - TIMEZONE: !ENV '${TIMEZONE:UTC}'
+  - ASSUME_ALWAYS_YES: 'yes'
+  - IGNORE_OSVERSION: 'yes'
+  - PKG_ABI: !ENV 'FreeBSD:${FBSDVER:15}:amd64'
+  - SSH_KEY: !ENV '${SSH_KEY}'
+script: |
+  set -xe
+  set -o pipefail
+
+  . "/metadata/environment"
+
+  sysrc -f /mnt/etc/rc.conf ifconfig_vtnet0="inet 192.168.8.2/24"
+  sysrc -f /mnt/etc/rc.conf defaultrouter="192.168.8.1"
+  sysrc -f /mnt/etc/rc.conf fsck_y_enable="YES"
+  sysrc -f /mnt/etc/rc.conf clear_tmp_enable="YES"
+  sysrc -f /mnt/etc/rc.conf dumpdev="NO"
+  sysrc -f /mnt/etc/rc.conf moused_nondefault_enable="NO"
+  sysrc -f /mnt/etc/rc.conf hostname="${HOSTNAME}"
+
+  cp -a /etc/resolv.conf /mnt/etc/resolv.conf
+
+  if [ -n "${SSH_KEY}" ]; then
+    printf "%s\n" "${SSH_KEY}" > /mnt/etc/ssh/authorized_keys
+    cat << EOF > "/mnt/etc/ssh/sshd_config"
+    Port 22
+    PubkeyAuthentication yes
+    AuthenticationMethods publickey
+    PermitRootLogin prohibit-password
+    PrintMotd no
+    X11Forwarding no
+    AllowAgentForwarding yes
+    ClientAliveCountMax 3
+    ClientAliveInterval 15
+    LoginGraceTime 40
+    AuthorizedKeysFile /etc/ssh/authorized_keys
+    Subsystem sftp internal-sftp
+  EOF
+    sysrc -f /mnt/etc/rc.conf sshd_enable="YES"
+  fi
+
+  cat << EOF > /mnt/boot/loader.conf
+  kern.geom.label.disk_ident.enable="0"
+  kern.geom.label.gptid.enable="0"
+  cryptodev_load="YES"
+  nvme_load="YES"
+  if_bridge_load="YES"
+  bridgestp_load="YES"
+  kern.racct.enable=1
+  EOF
+
+  ln -fs "/usr/share/zoneinfo/${TIMEZONE}" /mnt/etc/localtime
+
+  cat << EOF > "/mnt/etc/sysctl.conf"
+  security.bsd.see_other_uids=0
+  security.bsd.see_other_gids=0
+  security.bsd.see_jail_proc=0
+  kern.randompid=1
+  net.link.bridge.pfil_member=1
+  net.link.bridge.pfil_bridge=1
+  EOF
+
+  mkdir -p /mnt/usr/local/etc/pkg/repos
+  cat << "EOF" > "/mnt/usr/local/etc/pkg/repos/FreeBSD.conf"
+    FreeBSD-ports: {
+      url: "pkg+https://pkg.FreeBSD.org/${ABI}/latest",
+      mirror_type: "srv",
+      signature_type: "fingerprints",
+      fingerprints: "/usr/share/keys/pkg",
+      enabled: yes
+    }
+    FreeBSD-ports-kmods: {
+      url: "pkg+https://pkg.FreeBSD.org/${ABI}/kmods_latest",
+      mirror_type: "srv",
+      signature_type: "fingerprints",
+      fingerprints: "/usr/share/keys/pkg",
+      enabled: yes
+    }
+  EOF
+
+  cat << EOF > "/mnt/usr/local/etc/pkg/repos/FreeBSD-base.conf"
+    FreeBSD-base: {
+      enabled: yes
+    }
+  EOF
+
+  touch /mnt/firstboot

@@ -1,0 +1,76 @@
+#!/usr/bin/env atf-sh
+# vim: set filetype=sh :
+
+set -e -o pipefail
+
+APPJAIL_FILENAME="atf-test.AppJail"
+APPJAIL_VENDORID="tests@example.org"
+APPJAIL_VENDORID_REGEX="tests@example\.org"
+APPJAIL_VENDORID_HASH="$(sha256 -s "${APPJAIL_VENDORID}")"
+APPJAIL_PUBLIC_KEY="/var/x11appjail/keys/${APPJAIL_VENDORID_HASH}.pub"
+
+atf_test_case "build"
+build_head()
+{
+    srcdir="$(atf_get_srcdir)"
+
+    atf_set descr "Verifies that an AppJail is correctly created"
+    atf_set require.user "root"
+    atf_set require.files "${srcdir}/keys/key.sec"
+}
+
+build_body()
+{
+    srcdir="$(atf_get_srcdir)"
+    appjail="${srcdir}/${APPJAIL_FILENAME}"
+
+    atf_check -s exit:0 -o ignore -e ignore \
+        x11appjail build -LO -o "${appjail}" -s "${APPJAIL_VENDORID}":"${srcdir}/keys/key.sec" "${srcdir}/atf-test"
+}
+
+atf_test_case "verify" "cleanup"
+verify_head()
+{
+    srcdir="$(atf_get_srcdir)"
+
+    atf_set descr "Verifies that a public key is installed to verify an existing AppJail"
+    atf_set require.user "root"
+    atf_set require.files "${srcdir}/${APPJAIL_FILENAME} ${srcdir}/keys/key.pub"
+}
+
+verify_body()
+{
+    srcdir="$(atf_get_srcdir)"
+    appjail="${srcdir}/${APPJAIL_FILENAME}"
+    public_key="${srcdir}/keys/key.pub"
+
+    atf_check -s exit:0 -o ignore \
+        x11appjail trust "${APPJAIL_VENDORID}" "${public_key}"
+    atf_check -s exit:0 -o empty \
+        test -s "${APPJAIL_PUBLIC_KEY}"
+    atf_check -s exit:0 -o save:trusted.out \
+        x11appjail trusted
+    atf_check -s exit:0 -o match:"${APPJAIL_VENDORID_HASH}.pub[[:space:]]+${APPJAIL_VENDORID_REGEX} \(tests\) public key" \
+        grep -Ee "^${APPJAIL_VENDORID_HASH}\.pub[[:space:]]+${APPJAIL_VENDORID_REGEX} \(tests\) public key$" trusted.out
+    atf_check -s exit:0 -o ignore -e ignore \
+        x11appjail verify "${appjail}"
+    atf_check -s exit:0 -o ignore \
+        x11appjail untrust "${APPJAIL_VENDORID}"
+    atf_check -s exit:0 -o save:trusted.out \
+        x11appjail trusted
+    atf_check -s not-exit:0 -o empty \
+        grep -Ee "^${APPJAIL_VENDORID_HASH}\.pub[[:space:]]+${APPJAIL_VENDORID_REGEX} \(tests\) public key$" trusted.out
+    atf_check -s not-exit:0 -o empty \
+        test -s "${APPJAIL_PUBLIC_KEY}"
+}
+
+verify_cleanup()
+{
+    x11appjail untrust "${APPJAIL_VENDORID}" > /dev/null 2>&1 || :
+}
+
+atf_init_test_cases()
+{
+    atf_add_test_case build
+    atf_add_test_case verify
+}

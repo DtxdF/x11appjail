@@ -1,0 +1,15 @@
+#!/bin/sh
+
+JEXEC="${X11APPJAIL_BASEDIR}/usr/local/libexec/appjail/jexec/jexec"
+
+program="${1:-true}"
+
+if [ $# -gt 0 ]; then
+    shift
+fi
+
+exec "${JEXEC}" -l \
+    -U noroot \
+    -e DISPLAY="${X11APPJAIL_DISPLAY}" \
+    "${X11APPJAIL_JAIL}" \
+    "${program}" "$@"

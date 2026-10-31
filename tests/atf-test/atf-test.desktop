@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=atf-test (AppJail:%%PROFILE%%)
+GenericName=Generic Name
+Comment=AppJail for ATF testing
+Type=Application
+Exec=%%EXEC%%
+Icon=%%ICON%%
+Terminal=false
+Categories=Qt;Utility;TextEditor;
