@@ -5,7 +5,7 @@
 all: create-env prepare-env tests
 
 .PHONY: create-env
-create-env: vm.yml
+create-env: vm.yml clean
 	overlord apply -f vm.yml
 
 .PHONY: prepare-env
