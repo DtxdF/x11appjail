@@ -375,3 +375,14 @@ calc_checksum()
         b3sum --no-names || exit $?
     fi
 }
+
+get_user_info()
+{
+    USER_INFO=`pw usershow -u "$1"` || exit 1
+    USER_HOMEDIR=`printf "%s" "${USER_INFO}" | cut -d: -f9` || exit 1
+
+    if [ ! -d "${USER_HOMEDIR}" ]; then
+        err "User '$1' does not have a valid home directory."
+        exit 1
+    fi
+}

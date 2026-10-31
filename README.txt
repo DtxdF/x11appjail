@@ -244,7 +244,10 @@ DESCRIPTION
 	  application starts.
 
 	  If appspec contains a slash, it runs in portable mode. See PORTABLE
-	  MODE for details.
+	  MODE for details. However, if you have installed an AppJail as a
+	  unprivileged user and run it by its filename (that is, without a
+	  slash), this command resolves the path internally and runs it in
+	  portable mode anyway.
 
      run-cmd appspec [args ...]
 	  Executes an arbitrary program inside the jail. If no argument is

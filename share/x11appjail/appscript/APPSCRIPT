@@ -158,7 +158,7 @@ parse_option()
         uid=*)
             UID="${option#*=}"
 
-            get_user_info "${UID}"
+            local_get_user_info "${UID}"
 
             local user_xauthority="${USER_HOMEDIR}/.Xauthority"
 
@@ -240,7 +240,7 @@ main_user()
 
     local uid
     uid=`id -u` || exit 1
-    get_user_info "${uid}"
+    local_get_user_info "${uid}"
 
     local datadir="${USER_HOMEDIR}/.x11appjail"
     local locksdir="${datadir}/locks"
@@ -492,16 +492,9 @@ start_cache()
     daemon -f -p "${pidfile}" -- "${APPSCRIPT_SCRIPT}" --cache > /dev/null 2>&1
 }
 
-get_user_info()
+local_get_user_info()
 {
-
-    USER_INFO=`pw usershow -u "$1"` || exit 1
-    USER_HOMEDIR=`printf "%s" "${USER_INFO}" | cut -d: -f9` || exit 1
-
-    if [ ! -d "${USER_HOMEDIR}" ]; then
-        err "User '$1' does not have a valid home directory."
-        exit 1
-    fi
+    get_user_info "$1"
 
     export X11APPJAIL_HOMEDIR="${USER_HOMEDIR}"
 }

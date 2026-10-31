@@ -867,13 +867,56 @@ init()
 
 list()
 {
-    if [ ! -d "${APPSDIR}" ]; then
-        exit ${EX_OK}
-    fi
+    local display_column=true
 
     build_libexec
 
-    local display_column=true
+    {
+        list_system_apps
+        list_user_apps
+    } | column -t -s$'\t'
+}
+
+list_user_apps()
+{
+    local uid
+    uid=`id -u` || exit ${EX_SOFTWARE}
+
+    get_user_info "${uid}"
+
+    local datadir="${USER_HOMEDIR}/.x11appjail"
+    local appsdir="${datadir}/apps"
+
+    if [ ! -d "${appsdir}" ] || check_emptydir "${appsdir}"; then
+        return 0
+    fi
+
+    find -- "${appsdir}" -type f -mindepth 1 -maxdepth 1 | while IFS= read -r appjail; do
+        if [ ! -x "${appjail}" ]; then
+            continue
+        fi
+
+        NAME="${appjail##*/}"
+        # In portable mode, this is the only profile that could be used.
+        PROFILE="default"
+        NAME=`printf "%s" "${NAME}"` || exit ${EX_SOFTWARE}
+        SIZE=`du -sh -- "${appjail}" | cut -d$'\t' -f1` || exit ${EX_SOFTWARE}
+
+        if ${display_column}; then
+            printf "%s\t%s\t%s\n" "NAME" "PROFILE" "SIZE"
+            display_column=false
+        fi
+        printf "%s\t%s\t%s\n" "${NAME}" "${PROFILE}" "${SIZE:--}"
+    done
+
+    display_column=false
+}
+
+list_system_apps()
+{
+    if [ ! -d ${APPSDIR} ] || check_emptydir "${APPSDIR}"; then
+        return 0
+    fi
 
     find -- "${APPSDIR}" -type d -mindepth 1 -maxdepth 1 | while IFS= read -r directory; do
         # Only display completed apps.
@@ -895,11 +938,14 @@ list()
             display_column=false
         fi
         printf "%s\t%s\t%s\n" "${NAME}" "${PROFILE}" "${SIZE:--}"
-    done | column -t -s$'\t'
+    done
+
+    display_column=false
 }
 
 run()
 {
+    local is_installed
     local app="$1"
 
     if [ -z "${app}" ]; then
@@ -908,6 +954,26 @@ run()
     fi
 
     shift
+
+    if ! printf "%s" "${app}" | grep -q '/'; then
+        local uid
+        uid=`id -u` || exit ${EX_SOFTWARE}
+
+        get_user_info "${uid}"
+
+        local datadir="${USER_HOMEDIR}/.x11appjail"
+        local appsdir="${datadir}/apps"
+        local appjail="${appsdir}/${app}"
+
+        if [ -x "${appjail}" ]; then
+            is_installed=false
+            app="${appjail}"
+        else
+            is_installed=true
+        fi
+    else
+        is_installed=false
+    fi
 
     build_libexec
 
@@ -919,7 +985,7 @@ run()
         set -- dbus-session-bus-address="${DBUS_SESSION_BUS_ADDRESS}" "$@"
     fi
 
-    if ! printf "%s" "${app}" | grep -q '/'; then
+    if ${is_installed}; then
         # installed
         exec doas "${LIBEXEC}/map-exec" "exec" "$@"
     else

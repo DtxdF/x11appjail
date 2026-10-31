@@ -391,7 +391,11 @@ If
 .Ar appspec
 contains a slash, it runs in portable mode. See
 .Sx PORTABLE MODE
-for details.
+for details. However, if you have installed an AppJail as a unprivileged
+user and run it by its filename
+.Po that is, without a slash Pc Ns ,
+this command resolves the path internally and runs it in portable mode
+anyway.
 .It Cm run-cmd Ar appspec Oo Ar args No "..." Oc
 Executes an arbitrary program inside the jail. If no argument is
 specified, the jail user's shell
