@@ -17,5 +17,5 @@ tests: run-tests.sh
 	./run-tests.sh
 
 .PHONY: clean
-clean: destroy-env.sh
+clean: destroy-env.sh vm.yml
 	./destroy-env.sh
