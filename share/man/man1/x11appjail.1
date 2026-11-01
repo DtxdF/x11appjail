@@ -25,7 +25,7 @@
 .\"CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 .\"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 .\"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.Dd October 29, 2026
+.Dd November 01, 2026
 .Dt X11APPJAIL 1
 .Os
 .Sh NAME
@@ -90,6 +90,8 @@
 .Cm print-display Ar appspec
 .Nm
 .Cm remove Ar appspec
+.Nm
+.Cm remove Ar filename
 .Nm
 .Cm run Ar appspec Oo Ar args No "..." Oc
 .Nm
@@ -378,6 +380,17 @@ Uninstalls
 Before removing the
 .Ar appspec Ns ,
 the uninstallation script is executed if it was included in the AppJail.
+.It Cm remove Ar filename
+Like
+.Do Cm remove Ar appspec Ns , Dc
+but uninstalls a locally installed AppJail. It is intended for use by
+unprivileged users.
+.Pp
+If the
+.Ar filename
+does not exist, this command behaves the same as
+.Do Cm remove Ar appspec Ns , Dc
+resulting in an error, since this syntax requires privileges.
 .It Cm run Ar appspec Oo Ar args No "..." Oc
 Executes the program defined by the AppJail inside the jail.
 .Pp

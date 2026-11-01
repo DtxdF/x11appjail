@@ -48,11 +48,10 @@ main()
     local cmd="$1"
 
     case "${cmd}" in
-        attr|build|clipboard|destroy-jail|init|list-instances|list|login|prefix|print-display|run|run-cmd|service|transfer|trusted|verify) ;;
+        attr|build|clipboard|destroy-jail|init|list-instances|list|login|prefix|print-display|remove|run|run-cmd|service|transfer|trusted|verify) ;;
         version) version; exit 0 ;;
         trust) ;&
         untrust) ;&
-        remove) ;&
         sys-attr) root_only=true ;;
         *) usage; exit ${EX_USAGE} ;;
     esac
@@ -340,6 +339,24 @@ remove()
     fi
 
     build_libexec
+
+    if ! printf "%s" "${app}" | grep -q '/'; then
+        local uid
+        uid=`id -u` || exit ${EX_SOFTWARE}
+
+        get_user_info "${uid}"
+
+        local datadir="${USER_HOMEDIR}/.x11appjail"
+        local appsdir="${datadir}/apps"
+        local appjail="${appsdir}/${app}"
+
+        if [ -x "${appjail}" ]; then
+            exec "${appjail}" --uninstall
+            exit $?
+        fi
+    fi
+
+    check_root
 
     exec doas "${LIBEXEC}/map-exec" "remove" "${app}"
 }
@@ -1201,6 +1218,7 @@ usage: x11appjail attr check <attr>
        x11appjail prefix
        x11appjail print-display <appspec>
        x11appjail remove <appspec>
+       x11appjail remove <filename>
        x11appjail run <appspec> [<args> ...]
        x11appjail run-cmd <appspec> [<args> ...]
        x11appjail service <service> <appspec> [<args> ...]

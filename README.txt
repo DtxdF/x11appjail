@@ -19,6 +19,7 @@ SYNOPSIS
      x11appjail prefix
      x11appjail print-display appspec
      x11appjail remove appspec
+     x11appjail remove filename
      x11appjail run appspec [args ...]
      x11appjail run-cmd appspec [args ...]
      x11appjail service [-O] service appspec [args ...]
@@ -234,6 +235,14 @@ DESCRIPTION
 
 	  Before removing the appspec, the uninstallation script is executed
 	  if it was included in the AppJail.
+
+     remove filename
+	  Like "remove appspec," but uninstalls a locally installed AppJail.
+	  It is intended for use by unprivileged users.
+
+	  If the filename does not exist, this command behaves the same as
+	  "remove appspec," resulting in an error, since this syntax requires
+	  privileges.
 
      run appspec [args ...]
 	  Executes the program defined by the AppJail inside the jail.
