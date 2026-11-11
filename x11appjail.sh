@@ -41,6 +41,7 @@ KEYSDIR="${DATADIR}/keys"
 USERSDIR="${DATADIR}/users"
 ATTRDIR="/var/x11appjail/attrs"
 UNIXEXEC_TMPDIR=
+CREATE_ONLY=false
 
 main()
 {
@@ -48,7 +49,7 @@ main()
     local cmd="$1"
 
     case "${cmd}" in
-        attr|build|clipboard|destroy-jail|init|list-instances|list|login|prefix|print-display|remove|run|run-cmd|service|transfer|trusted|verify) ;;
+        attr|build|clipboard|create|destroy-jail|init|list-instances|list|login|prefix|print-display|remove|run|run-cmd|service|transfer|trusted|verify) ;;
         version) version; exit 0 ;;
         trust) ;&
         untrust) ;&
@@ -960,6 +961,13 @@ list_system_apps()
     display_column=false
 }
 
+create()
+{
+    CREATE_ONLY=1
+
+    run "$1"
+}
+
 run()
 {
     local is_installed
@@ -1000,6 +1008,10 @@ run()
 
     if [ -n "${DBUS_SESSION_BUS_ADDRESS}" ]; then
         set -- dbus-session-bus-address="${DBUS_SESSION_BUS_ADDRESS}" "$@"
+    fi
+
+    if [ -n "${CREATE_ONLY}" ]; then
+        set -- create-only "$@"
     fi
 
     if ${is_installed}; then
@@ -1210,6 +1222,7 @@ usage: x11appjail attr check <attr>
                [-f <directory>] [-i <image>] [-o <filename>]
                [-s <vendorid>:<public_key>] [-t <tag>] [-v <version>] <directory>
        x11appjail clipboard [-O] [-s <selection>] <appspec1> [<appspec2>]
+       x11appjail create <appspec>
        x11appjail destroy-jail <appspec>
        x11appjail init <pathname>
        x11appjail list-instances

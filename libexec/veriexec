@@ -51,11 +51,15 @@ load_common
 HOST_DISPLAY=":0"
 HOST_DBUS_SYSTEM_BUS_ADDRESS="unix:path=/var/run/dbus/system_bus_socket"
 HOST_DBUS_SESSION_BUS_ADDRESS=
+HOST_CREATE_ONLY=
 HOST_OPTION=
 HOST_INDEX=1
 
 for HOST_OPTION; do
     case "${HOST_OPTION}" in
+        create-only)
+            HOST_CREATE_ONLY=1
+            ;;
         display=*)
             HOST_DISPLAY="${HOST_OPTION#*=}"
             ;;
@@ -199,5 +203,9 @@ set -- --set-option "display=${HOST_DISPLAY}" "$@"
 set -- --set-option "uid=${UID}" "$@"
 set -- --set-option "gid=${GID}" "$@"
 set -- --set-option "dbus-system-bus-address=${HOST_DBUS_SYSTEM_BUS_ADDRESS}" "$@"
+
+if [ -n "${HOST_CREATE_ONLY}" ]; then
+    set -- --set-option "create-only" "$@"
+fi
 
 exec "${EXECUTABLE}" "$@"

@@ -11,6 +11,7 @@ SYNOPSIS
 		[-f directory] [-i image] [-o filename]
 		[-s vendorid:public_key] [-t tag] [-v version] directory
      x11appjail clipboard [-O] [-s selection] appspec1 [appspec2]
+     x11appjail create appspec
      x11appjail destroy-jail appspec
      x11appjail init pathname
      x11appjail list-instances
@@ -197,6 +198,9 @@ DESCRIPTION
 
 	  If the -O parameter is specified, the clipboard is synchronized only
 	  once. See xclipsync(1) for details and implications.
+
+     create appspec
+	  Like run but only executes the create phase.
 
      destroy-jail appspec
 	  Destroy a jail.

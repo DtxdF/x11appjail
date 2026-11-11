@@ -51,6 +51,7 @@ main()
             --install) opt_install=true ;;
             --uninstall) opt_uninstall=true ;;
             --cache) opt_cache=true ;;
+            --create-only) CREATE_ONLY=1 ;;
             --set-option)
                 if [ "$2" = "" ]; then
                     usage
@@ -149,6 +150,9 @@ parse_option()
     local option="$1"
 
     case "${option}" in
+        create-only)
+            export CREATE_ONLY=1
+            ;;
         nocache)
             export NOCACHE=1
             ;;
@@ -237,6 +241,7 @@ main_user()
     local opt_install=false
     local opt_uninstall=false
     local opt_cache=false
+    local opt_create_only=false
 
     local uid
     uid=`id -u` || exit 1
@@ -254,6 +259,7 @@ main_user()
             --install) opt_install=true ;;
             --uninstall) opt_uninstall=true ;;
             --cache) opt_cache=true ;;
+            --create-only) opt_create_only=true ;;
             --) shift; break ;;
             -*)
                 err "'$1' is invalid. Use '--help' to see a list of all available options."
@@ -321,6 +327,10 @@ main_user()
 
         if [ -n "${DBUS_SESSION_BUS_ADDRESS}" ]; then
             set -- dbus-session-bus-address="${DBUS_SESSION_BUS_ADDRESS}" "$@"
+        fi
+
+        if [ -n "${opt_create_only}" ]; then
+            set -- create-only "$@"
         fi
 
         exec doas "${LIBEXEC}/map-exec" "veriexec" "$@"
@@ -593,7 +603,7 @@ x11appjail_run()
                 # but in most cases, host users will want to manipulate the X server
                 # they have access to.
                 #
-                if [ "${X11APPJAIL_CLI_ONLY}" -eq 0 ] && [ -n "${USER_XAUTHORITY}" ]; then
+                if [ -z "${CREATE_ONLY}" ] && [ "${X11APPJAIL_CLI_ONLY}" -eq 0 ] && [ -n "${USER_XAUTHORITY}" ]; then
                     local x11_display
                     x11_display=`"${APPJAIL}" x11 "${X11APPJAIL_JAIL}" assign_only` || exit 1
 
@@ -646,6 +656,10 @@ x11appjail_run()
             break
         done
 
+        if [ -n "${CREATE_ONLY}" ]; then
+            exit 0
+        fi
+
         if [ "${X11APPJAIL_CLI_ONLY}" -eq 0 ]; then
             local xephyr_pid
             xephyr_pid=`"${APPJAIL}" jail list -HI -j "${X11APPJAIL_JAIL}" xephyr_pid` || exit 1
@@ -680,6 +694,10 @@ x11appjail_run()
     exec 7>&-
 
     remove_xauthority
+
+    if [ -n "${CREATE_ONLY}" ]; then
+        exit 0
+    fi
 
     if [ "${X11APPJAIL_CLI_ONLY}" -eq 0 ]; then
         local x11_display
@@ -918,10 +936,16 @@ AppJail options:
   --cache
         Used by the caching system.
 
+  --create-only
+        Run only the \`create\` phase.
+
   --set-option <option>[=<value>]
         (root only). Set an option.
 
         Options:
+
+          - create-only
+              Run only the \`create\` phase.
 
           - nocache
               Don't start the caching process at all.
@@ -948,7 +972,7 @@ AppJail options:
 
 Notes:
   - The default behavior is to run the application within the jail unless
-    the --install, --uninstall or --cache options are specified.
+    the --install, --uninstall, --cache or --create-only options are specified.
   - Use \`--\` to indicate the end of the arguments if the first argument
     is not a positional argument.
 EOF
