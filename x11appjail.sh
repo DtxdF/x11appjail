@@ -963,7 +963,7 @@ list_system_apps()
 
 create()
 {
-    CREATE_ONLY=1
+    CREATE_ONLY=true
 
     run "$1"
 }
@@ -1010,7 +1010,7 @@ run()
         set -- dbus-session-bus-address="${DBUS_SESSION_BUS_ADDRESS}" "$@"
     fi
 
-    if [ -n "${CREATE_ONLY}" ]; then
+    if "${CREATE_ONLY}"; then
         set -- create-only "$@"
     fi
 
