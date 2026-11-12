@@ -79,7 +79,7 @@ if [ "${PHASE}" = "I" ]; then
     if [ ${UID} -eq 0 ]; then
         EXEC="x11appjail run ${X11APPJAIL_APPNAME}:${X11APPJAIL_PROFILE}"
     else
-        EXEC="x11appjail run ${X11APPJAIL_HOMEDIR}/.x11appjail/apps/${X11APPJAIL_APPNAME}.AppJail"
+        EXEC="x11appjail run ${X11APPJAIL_APPNAME}.AppJail"
     fi
 
     if [ ! -d "${USER_ICONDIR}" ]; then
