@@ -23,6 +23,7 @@ SYNOPSIS
      x11appjail remove filename
      x11appjail run appspec [args ...]
      x11appjail run-cmd appspec [args ...]
+     x11appjail run-xcmd appspec [args ...]
      x11appjail service [-O] service appspec [args ...]
      x11appjail transfer [-m mode] source [target]
      x11appjail trust vendorid public_key
@@ -270,6 +271,10 @@ DESCRIPTION
 	  This command will not work unless the jail has the
 	  meta.x11appjail.exec.user parameter set to the user under which the
 	  process will run.
+
+     run-xcmd appspec [args ...]
+	  Like run-cmd but if appspec has an assigned DISPLAY, it will be set
+	  as an environment variable when executing the command.
 
      service [-O] service appspec [args ...]
 	  Configure a service in appspec. Refer to SERVICES for more details.

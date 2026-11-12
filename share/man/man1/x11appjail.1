@@ -25,7 +25,7 @@
 .\"CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 .\"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 .\"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.Dd November 11, 2026
+.Dd November 12, 2026
 .Dt X11APPJAIL 1
 .Os
 .Sh NAME
@@ -98,6 +98,8 @@
 .Cm run Ar appspec Oo Ar args No "..." Oc
 .Nm
 .Cm run-cmd Ar appspec Oo Ar args No "..." Oc
+.Nm
+.Cm run-xcmd Ar appspec Oo Ar args No "..." Oc
 .Nm
 .Cm service Oo Fl O Oc Ar service Ar appspec Oo Ar args No "..." Oc
 .Nm
@@ -426,6 +428,14 @@ will be used.
 This command will not work unless the jail has the
 .Sy meta.x11appjail.exec.user
 parameter set to the user under which the process will run.
+.It Cm run-xcmd Ar appspec Oo Ar args No "..." Oc
+Like
+.Cm run-cmd
+but if
+.Ar appspec
+has an assigned
+.Ev DISPLAY Ns ,
+it will be set as an environment variable when executing the command.
 .It Cm service Oo Fl O Oc Ar service Ar appspec Oo Ar args No "..." Oc
 Configure a
 .Ar service

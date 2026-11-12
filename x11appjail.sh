@@ -49,7 +49,7 @@ main()
     local cmd="$1"
 
     case "${cmd}" in
-        attr|build|clipboard|create|destroy-jail|init|list-instances|list|login|prefix|print-display|remove|run|run-cmd|service|transfer|trusted|verify) ;;
+        attr|build|clipboard|create|destroy-jail|init|list-instances|list|login|prefix|print-display|remove|run|run-cmd|run-xcmd|service|transfer|trusted|verify) ;;
         version) version; exit 0 ;;
         trust) ;&
         untrust) ;&
@@ -376,6 +376,22 @@ login()
     build_libexec
 
     exec doas "${LIBEXEC}/map-exec" "login" "${app}"
+}
+
+run-xcmd()
+{
+    local app="$1"
+
+    if [ -z "${app}" ]; then
+        usage
+        exit ${EX_USAGE}
+    fi
+
+    shift
+
+    build_libexec
+
+    exec doas "${LIBEXEC}/map-exec" "run-xcmd" "${app}" "$@"
 }
 
 run-cmd()
@@ -1234,6 +1250,7 @@ usage: x11appjail attr check <attr>
        x11appjail remove <filename>
        x11appjail run <appspec> [<args> ...]
        x11appjail run-cmd <appspec> [<args> ...]
+       x11appjail run-xcmd <appspec> [<args> ...]
        x11appjail service <service> <appspec> [<args> ...]
        x11appjail transfer [-m <mode>] <source> [<target>]
        x11appjail trust <vendorid> <public_key>

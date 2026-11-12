@@ -31,13 +31,11 @@
 test -n "${DOAS_USER}" || exit 1
 
 UID=`id -u "${DOAS_USER}"` || exit 1
+PREFIX=`x11appjail prefix` || exit 1
 
 load_common()
 {
-    local prefix
-    prefix=`x11appjail prefix` || exit 1
-
-    . "${prefix}/lib/x11appjail/common"
+    . "${PREFIX}/lib/x11appjail/common"
 }
 
 load_common
@@ -59,6 +57,16 @@ ME=`readlink -f -- "$0"` || exit 1
 ME=`basename -- "${ME}"` || exit 1
 
 case "${ME}" in
-    login) exec jexec -l -U "${EXEC_USER}" "${JAIL}" login -f -- "${EXEC_USER}" ;;
-    *) exec jexec -l -U "${EXEC_USER}" "${JAIL}" "$@" ;;
+    run-xcmd)
+        HOST_DISPLAY=`"${PREFIX}/libexec/x11appjail/print-display" "${APPNAME}:${PROFILE}"` || exit 1
+
+        exec "${PREFIX}/libexec/appjail/jexec/jexec" -l \
+            -e DISPLAY=":${HOST_DISPLAY}" -U "${EXEC_USER}" "${JAIL}" "$@"
+        ;;
+    login)
+        exec jexec -l -U "${EXEC_USER}" "${JAIL}" login -f -- "${EXEC_USER}"
+        ;;
+    *)
+        exec jexec -l -U "${EXEC_USER}" "${JAIL}" "$@"
+        ;;
 esac

@@ -31,6 +31,7 @@ install:
 .for s in appsiz attr exec veriexec destroy-jail remove run-cmd transfer print-display map-exec
 	${INSTALL} -m 555 libexec/${s} "${DESTDIR}${PREFIX}/libexec/x11appjail/${s}"
 .endfor
+	${LN} "${DESTDIR}${PREFIX}/libexec/x11appjail/run-cmd" "${DESTDIR}${PREFIX}/libexec/x11appjail/run-xcmd"
 	${LN} "${DESTDIR}${PREFIX}/libexec/x11appjail/run-cmd" "${DESTDIR}${PREFIX}/libexec/x11appjail/login"
 	${LN} "${DESTDIR}${PREFIX}/libexec/x11appjail/attr" "${DESTDIR}${PREFIX}/libexec/x11appjail/sys-attr"
 	${MKDIR} -m 755 "${DESTDIR}${PREFIX}/libexec/x11appjail/service.d"
