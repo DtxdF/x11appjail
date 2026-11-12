@@ -329,7 +329,7 @@ main_user()
             set -- dbus-session-bus-address="${DBUS_SESSION_BUS_ADDRESS}" "$@"
         fi
 
-        if [ -n "${opt_create_only}" ]; then
+        if [ "${opt_create_only}" ]; then
             set -- create-only "$@"
         fi
 
