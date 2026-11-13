@@ -156,6 +156,9 @@ parse_option()
         nocache)
             export NOCACHE=1
             ;;
+        entrypoint=*)
+            export X11APPJAIL_ENTRYPOINT="${option#*=}"
+            ;;
         profile=*)
             X11APPJAIL_PROFILE="${option#*=}"
             ;;
@@ -327,6 +330,10 @@ main_user()
 
         if [ -n "${DBUS_SESSION_BUS_ADDRESS}" ]; then
             set -- dbus-session-bus-address="${DBUS_SESSION_BUS_ADDRESS}" "$@"
+        fi
+
+        if [ -n "${X11APPJAIL_ENTRYPOINT}" ]; then
+            set -- entrypoint="${X11APPJAIL_ENTRYPOINT}" "$@"
         fi
 
         if "${opt_create_only}"; then
@@ -949,6 +956,11 @@ AppJail options:
 
           - nocache
               Don't start the caching process at all.
+
+          - entrypoint=<entrypoint>
+              Sets the X11APPJAIL_ENTRYPOINT environment variable.
+              AppJails could use this environment variable as the
+              entrypoint, but this is not mandatory.
 
           - profile=<profile>
               Profile name.

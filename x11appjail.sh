@@ -1026,6 +1026,10 @@ run()
         set -- dbus-session-bus-address="${DBUS_SESSION_BUS_ADDRESS}" "$@"
     fi
 
+    if [ -n "${X11APPJAIL_ENTRYPOINT}" ]; then
+        set -- entrypoint="${X11APPJAIL_ENTRYPOINT}" "$@"
+    fi
+
     if "${CREATE_ONLY}"; then
         set -- create-only "$@"
     fi
