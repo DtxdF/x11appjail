@@ -12,4 +12,4 @@ exec "${JEXEC}" -l \
     -U noroot \
     -e DISPLAY="${X11APPJAIL_DISPLAY}" \
     "${X11APPJAIL_JAIL}" \
-    "${program}" "$@"
+    "${X11APPJAIL_ENTRYPOINT:-${program}}" "$@"

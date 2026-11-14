@@ -32,10 +32,18 @@ run_body()
         mdo -u "${user}" sh -c "x11appjail run ${appjail} true < /dev/null"
     atf_check -s not-exit:0 -o ignore -e ignore \
         mdo -u "${user}" sh -c "x11appjail run ${appjail} false < /dev/null"
+    atf_check -s exit:0 -o ignore -e ignore \
+        mdo -u "${user}" sh -c "env X11APPJAIL_ENTRYPOINT=true x11appjail run ${appjail} < /dev/null"
+    atf_check -s not-exit:0 -o ignore -e ignore \
+        mdo -u "${user}" sh -c "env X11APPJAIL_ENTRYPOINT=false x11appjail run ${appjail} < /dev/null"
     atf_check -s exit:0 -o "inline:1" \
         mdo -u "${user}" sh -c "x11appjail run-cmd ${APPJAIL_APPNAME} echo -n 1 < /dev/null"
     atf_check -s exit:0 -o "match:^[0-9]+$" \
         mdo -u "${user}" x11appjail print-display "${APPJAIL_APPNAME}"
+    atf_check -s exit:1 -o empty \
+        mdo -u "${user}" sh -c "x11appjail run-cmd ${APPJAIL_APPNAME} printenv DISPLAY < /dev/null"
+    atf_check -s exit:0 -o not-empty \
+        mdo -u "${user}" sh -c "x11appjail run-xcmd ${APPJAIL_APPNAME} printenv DISPLAY < /dev/null"
     atf_check -s exit:0 -o save:list-instances.out \
         mdo -u "${user}" x11appjail list-instances
     atf_check -s exit:0 -o "inline:${APPJAIL_APPNAME}:default\n" \
