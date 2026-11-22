@@ -35,13 +35,12 @@ test -n "${DOAS_USER}" || exit 1
 UID=`id -u "${DOAS_USER}"` || exit 1
 GID=`id -g "${DOAS_USER}"` || exit 1
 OGID=`id -G "${DOAS_USER}" | tr ' ' ','` || exit 1
+PREFIX=`x11appjail prefix` || exit 1
+RUNDIR="/var/run/x11appjail"
 
 load_common()
 {
-    local prefix
-    prefix=`x11appjail prefix` || exit 1
-
-    . "${prefix}/lib/x11appjail/common"
+    . "${PREFIX}/lib/x11appjail/common"
 }
 
 check_syntax1()
@@ -88,6 +87,36 @@ run_as()
     mdo -u "${UID}" -g "${GID}" -G "${OGID}" -- "$@"
 }
 
+run_hook()
+{
+    local op="$1"
+
+    local appname profile
+
+    if [ "${op}" = "read" ]; then
+        appname="${FROM_APPNAME}"
+        profile="${FROM_PROFILE}"
+    elif [ "${op}" = "write" ]; then
+        appname="${TO_APPNAME}"
+        profile="${TO_PROFILE}"
+    else
+        exit 1
+    fi
+
+    env \
+        X11APPJAIL_UID="${UID}" \
+        X11APPJAIL_GID="${GID}" \
+        X11APPJAIL_OGID="${OGID}" \
+        X11APPJAIL_APPNAME="${appname}" \
+        X11APPJAIL_PROFILE="${profile}" \
+        X11APPJAIL_PREFIX="${PREFIX}" \
+        X11APPJAIL_JAIL="${JAIL}" \
+        X11APPJAIL_TRANSFER_FILE_MODE="${FILE_MODE}" \
+        X11APPJAIL_TRANSFER_FILE_PATH="${FILE}" \
+        X11APPJAIL_TRANSFER_FILE_IO_OPERATION="${op}" \
+        "${HOOK_SCRIPT}"
+}
+
 load_common
 
 FILE_MODE="$1"
@@ -129,19 +158,35 @@ if [ -n "${TO_APPSPEC}" ] && [ -z "${TO_FILE}" ]; then
 fi
 
 if [ -n "${FROM_APPSPEC}" -a -n "${FROM_FILE}" ]; then
-    jtransfer -r \
-        -u "${UID}:${GID}" \
-        -j "x11appjail-${FROM_APPNAME}-${UID}_${FROM_PROFILE}" \
-        -f "${FROM_FILE}" || exit 1
+    JAIL="x11appjail-${FROM_APPNAME}-${UID}_${FROM_PROFILE}"
+    HOOK_SCRIPT="${RUNDIR}/transfer/${JAIL}"
+    FILE="${FROM_FILE}"
+
+    if [ -x "${HOOK_SCRIPT}" ]; then
+        run_hook "read"
+    else
+        jtransfer -r \
+            -u "${UID}:${GID}" \
+            -j "${JAIL}" \
+            -f "${FILE}" || exit 1
+    fi
 else
     run_as cat -- "${FROM_FILE}" || exit 1
 fi |\
 if [ -n "${TO_APPSPEC}" -a -n "${TO_FILE}" ]; then
-    jtransfer -w \
-        -m "${FILE_MODE}" \
-        -u "${UID}:${GID}" \
-        -j "x11appjail-${TO_APPNAME}-${UID}_${TO_PROFILE}" \
-        -f "${TO_FILE}" || exit 1
+    JAIL="x11appjail-${TO_APPNAME}-${UID}_${TO_PROFILE}"
+    HOOK_SCRIPT="${RUNDIR}/transfer/${JAIL}"
+    FILE="${TO_FILE}"
+
+    if [ -x "${HOOK_SCRIPT}" ]; then
+        run_hook "write"
+    else
+        jtransfer -w \
+            -m "${FILE_MODE}" \
+            -u "${UID}:${GID}" \
+            -j "${JAIL}" \
+            -f "${FILE}" || exit 1
+    fi
 elif [ -n "${TO_FILE}" ]; then
     run_as tee -- "${TO_FILE}" > /dev/null || exit 1
 else

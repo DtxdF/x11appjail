@@ -25,7 +25,7 @@
 .\"CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 .\"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 .\"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.Dd November 12, 2026
+.Dd November 18, 2026
 .Dt REPRODUCE-SPEC 5
 .Os
 .Sh NAME
@@ -39,33 +39,40 @@ as the latter is used to create the former. This also means that the specificati
 command in
 .Xr x11appjail 1 Ns ":"
 .Pp
-.Bl -tag -width xxx
+.Bl -tag -width xxx -compact
 .It Pa descr
 A brief description affecting the
 .Ev X11APPJAIL_TITLE
 environment variable.
+.Pp
 .It Pa create
 An executable file used to create the jail when it is detected that it
 needs to be recreated or does not exist.
+.Pp
 .It Pa X
 An executable file that, when included, runs to start the X server via
 .Xr appjail-x11 1 Ns "."
+.Pp
 .It Pa install
 An executable file that runs once the AppJail is installed.
 .Pp
 It is important to note that, unlike other scripts, this one can be
 executed by root or by an unprivileged user.
+.Pp
 .It Pa uninstall
 An executable file that runs before the AppJail is uninstalled.
 .Pp
 It is important to note that, unlike other scripts, this one can be
 executed by root or by an unprivileged user.
+.Pp
 .It Pa run
 An executable file to run the application inside the jail.
+.Pp
 .It Pa image
 You do not include this file yourself, but it will be included by the
 .Cm build
 command.
+.Pp
 .It Pa clean
 An executable file that runs before the jail is destroyed by the
 .Cm destroy-jail
@@ -87,7 +94,54 @@ Only a subset of environment variables are explicitly set:
 .It Ev X11APPJAIL_APPNAME
 .It Ev X11APPJAIL_PROFILE
 .It Ev X11APPJAIL_PREFIX
+.It Ev X11APPJAIL_JAIL
 .El
+.Pp
+.It Pa cmd
+.It Pa xcmd
+.It Pa login
+.It Pa transfer
+These are hooks similar to
+.Pa clean Ns ,
+but, unlike it, they replace the entire execution of the
+.Cm run-cmd Ns ,
+.Cm run-xcmd Ns ,
+.Cm login Ns ,
+and
+.Cm transfer
+commands.
+.Pp
+In addition to the environment variables defined in the
+.Pa clean
+executable file, the following are explicitly set for the
+.Cm transfer
+command:
+.Pp
+.Bl -tag -width xx -offset 4
+.It Ev X11APPJAIL_TRANSFER_FILE_IO_OPERATION
+Specifies the operating mode. Only the
+.Sy read
+and
+.Sy write
+modes are allowed.
+.Pp
+.It Ev X11APPJAIL_TRANSFER_FILE_PATH
+The file that will be read from or written to, depending on the operating
+mode.
+.Pp
+.It Ev X11APPJAIL_TRANSFER_FILE_MODE
+File creation mode.
+.El
+.Pp
+Please note that, unlike
+.Cm run-cmd Ns ,
+.Cm run-xcmd Ns ,
+and
+.Cm login Ns ,
+the
+.Sy meta.x11appjail.exec.user
+parameter is entirely optional, and it is your responsibility to check
+it if you need to.
 .El
 .Sh SERVICE SPECIFICATION
 .Bl -tag -width xxx

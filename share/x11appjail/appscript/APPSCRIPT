@@ -12,7 +12,11 @@ USERSDIR="${DATADIR}/users"
 LOCKSDIR="${TMPDIR:-/tmp}/.x11appjail-locks"
 X11APPJAILDIR="${SELF}/x11appjail"
 RUNDIR="/var/run/x11appjail"
-CLEANDIR="${RUNDIR}/clean"
+RUNDIR_CLEAN="${RUNDIR}/clean"
+RUNDIR_LOGIN="${RUNDIR}/login"
+RUNDIR_CMD="${RUNDIR}/cmd"
+RUNDIR_XCMD="${RUNDIR}/xcmd"
+RUNDIR_TRANSFER="${RUNDIR}/transfer"
 export X11APPJAIL_IMAGE="${X11APPJAILDIR}/image"
 export X11APPJAIL_BASEDIR="${SELF}"
 export X11APPJAIL_WORKDIR="${X11APPJAILDIR}"
@@ -564,10 +568,37 @@ x11appjail_run()
         descr="${APPNAME}"
     fi
 
-    if [ -x "${X11APPJAILDIR}/clean" ]; then
-        create_cleandir
+    if [ -x "${X11APPJAILDIR}/clean" ] || \
+            [ -x "${X11APPJAILDIR}/login" ] || \
+            [ -x "${X11APPJAILDIR}/cmd" ] || \
+            [ -x "${X11APPJAILDIR}/xcmd" ] || \
+            [ -x "${X11APPJAILDIR}/transfer" ]; then
+        create_rundir
 
-        install -o 0 -g 0 -m 0555 -- "${X11APPJAILDIR}/clean" "${CLEANDIR}/${X11APPJAIL_JAIL}" || exit 1
+        if [ -x "${X11APPJAILDIR}/clean" ]; then
+            create_directory "${RUNDIR_CLEAN}"
+            install -o 0 -g 0 -m 0555 -- "${X11APPJAILDIR}/clean" "${RUNDIR_CLEAN}/${X11APPJAIL_JAIL}" || exit 1
+        fi
+
+        if [ -x "${X11APPJAILDIR}/login" ]; then
+            create_directory "${RUNDIR_LOGIN}"
+            install -o 0 -g 0 -m 0555 -- "${X11APPJAILDIR}/login" "${RUNDIR_LOGIN}/${X11APPJAIL_JAIL}" || exit 1
+        fi
+
+        if [ -x "${X11APPJAILDIR}/cmd" ]; then
+            create_directory "${RUNDIR_CMD}"
+            install -o 0 -g 0 -m 0555 -- "${X11APPJAILDIR}/cmd" "${RUNDIR_CMD}/${X11APPJAIL_JAIL}" || exit 1
+        fi
+
+        if [ -x "${X11APPJAILDIR}/xcmd" ]; then
+            create_directory "${RUNDIR_XCMD}"
+            install -o 0 -g 0 -m 0555 -- "${X11APPJAILDIR}/xcmd" "${RUNDIR_XCMD}/${X11APPJAIL_JAIL}" || exit 1
+        fi
+
+        if [ -x "${X11APPJAILDIR}/transfer" ]; then
+            create_directory "${RUNDIR_TRANSFER}"
+            install -o 0 -g 0 -m 0555 -- "${X11APPJAILDIR}/transfer" "${RUNDIR_TRANSFER}/${X11APPJAIL_JAIL}" || exit 1
+        fi
     fi
 
     export X11APPJAIL_TITLE="${X11APPJAIL_PROFILE}: ${X11APPJAIL_TITLE:-${descr}}"
@@ -841,12 +872,6 @@ x11appjail_destroy_jail()
 
         "${APPJAIL}" jail destroy -Rf -- "${jail}" > /dev/null 2>&1
     done
-}
-
-create_cleandir()
-{
-    create_rundir
-    create_directory "${CLEANDIR}"
 }
 
 create_rundir()

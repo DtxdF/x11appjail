@@ -229,6 +229,10 @@ DESCRIPTION
 	  meta.x11appjail.exec.user parameter set to the user under which
 	  login(1) will run.
 
+	  An AppJail can install a hook for this command that alters its
+	  default behavior. For more details, see SPECIFICATION in
+	  x11appjail-spec(5).
+
      prefix
 	  Displays the system prefix, commonly /usr/local.
 
@@ -272,9 +276,17 @@ DESCRIPTION
 	  meta.x11appjail.exec.user parameter set to the user under which the
 	  process will run.
 
+	  An AppJail can install a hook for this command that alters its
+	  default behavior. For more details, see SPECIFICATION in
+	  x11appjail-spec(5).
+
      run-xcmd appspec [args ...]
 	  Like run-cmd but if appspec has an assigned DISPLAY, it will be set
 	  as an environment variable when executing the command.
+
+	  An AppJail can install a hook for this command that alters its
+	  default behavior. For more details, see SPECIFICATION in
+	  x11appjail-spec(5).
 
      service [-O] service appspec [args ...]
 	  Configure a service in appspec. Refer to SERVICES for more details.
@@ -310,6 +322,10 @@ DESCRIPTION
 	  stdout.
 
 	  File creation mode is set using the -m option.
+
+	  An AppJail can install a hook for this command that alters its
+	  default behavior. For more details, see SPECIFICATION in
+	  x11appjail-spec(5).
 
      trust vendorid public_key
 	  Trust a vendor by installing its public key. This will allow

@@ -58,10 +58,19 @@ if [ -x "${CLEAN_SCRIPT}" ]; then
         X11APPJAIL_APPNAME="${APPNAME}" \
         X11APPJAIL_PROFILE="${PROFILE}" \
         X11APPJAIL_PREFIX="${PREFIX}" \
+        X11APPJAIL_JAIL="${JAIL}" \
         "${CLEAN_SCRIPT}" || exit 1
-
-    rm -f -- "${CLEAN_SCRIPT}"
 fi
+
+for HOOK in clean login cmd xcmd transfer; do
+    HOOK_SCRIPT="/var/run/x11appjail/${HOOK}/${JAIL}"
+
+    if [ ! -x "${HOOK_SCRIPT}" ]; then
+        continue
+    fi
+
+    rm -f -- "${HOOK_SCRIPT}"
+done
 
 if appjail status -q -- "${JAIL}" > /dev/null 2>&1; then
     appjail stop -- "${JAIL}"

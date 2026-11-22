@@ -32,10 +32,25 @@ test -n "${DOAS_USER}" || exit 1
 
 UID=`id -u "${DOAS_USER}"` || exit 1
 PREFIX=`x11appjail prefix` || exit 1
+RUNDIR="/var/run/x11appjail"
 
 load_common()
 {
     . "${PREFIX}/lib/x11appjail/common"
+}
+
+common_env()
+{
+    GID=`id -g "${DOAS_USER}"` || exit 1
+    OGID=`id -G "${UID}" | tr ' ' ','` || exit 1
+
+    export X11APPJAIL_UID="${UID}"
+    export X11APPJAIL_GID="${GID}"
+    export X11APPJAIL_OGID="${OGID}"
+    export X11APPJAIL_APPNAME="${APPNAME}"
+    export X11APPJAIL_PROFILE="${PROFILE}"
+    export X11APPJAIL_PREFIX="${PREFIX}"
+    export X11APPJAIL_JAIL="${JAIL}"
 }
 
 load_common
@@ -46,15 +61,52 @@ JAIL="x11appjail-${APPNAME}-${UID}_${PROFILE}"
 
 shift
 
+ME=`readlink -f -- "$0"` || exit 1
+ME=`basename -- "${ME}"` || exit 1
+
+case "${ME}" in
+    run-xcmd)
+        HOOK_SCRIPT="${RUNDIR}/xcmd/${JAIL}"
+
+        if [ -x "${HOOK_SCRIPT}" ]; then
+            HOST_DISPLAY=`"${PREFIX}/libexec/x11appjail/print-display" "${APPNAME}:${PROFILE}"` || exit 1
+
+            export X11APPJAIL_DISPLAY=":${HOST_DISPLAY}"
+
+            common_env
+
+            exec "${HOOK_SCRIPT}" "$@"
+        fi
+        ;;
+    run-cmd)
+        HOOK_SCRIPT="${RUNDIR}/cmd/${JAIL}"
+
+        if [ -x "${HOOK_SCRIPT}" ]; then
+            common_env
+
+            exec "${HOOK_SCRIPT}" "$@"
+        fi
+        ;;
+    login)
+        HOOK_SCRIPT="${RUNDIR}/login/${JAIL}"
+
+        if [ -x "${HOOK_SCRIPT}" ]; then
+            common_env
+
+            exec "${HOOK_SCRIPT}" "$@"
+        fi
+        ;;
+    *)
+        exit 1
+        ;;
+esac
+
 EXEC_USER=`jls -j "${JAIL}" meta.x11appjail.exec.user` || exit 1
 
 if [ -z "${EXEC_USER}" ]; then
     err "'meta.x11appjail.exec.user' isn't set. Cannot continue."
     exit 1
 fi
-
-ME=`readlink -f -- "$0"` || exit 1
-ME=`basename -- "${ME}"` || exit 1
 
 case "${ME}" in
     run-xcmd)
@@ -66,7 +118,10 @@ case "${ME}" in
     login)
         exec jexec -l -U "${EXEC_USER}" "${JAIL}" login -f -- "${EXEC_USER}"
         ;;
-    *)
+    run-cmd)
         exec jexec -l -U "${EXEC_USER}" "${JAIL}" "$@"
+        ;;
+    *)
+        exit 1
         ;;
 esac
