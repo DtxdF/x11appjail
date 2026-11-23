@@ -959,8 +959,10 @@ length of the content.
 .Sh IMPLEMENTATION NOTES
 The AppJail filename serves as the application name used to construct other strings, such as the name of the jail where the application will run and the data directory used for data persistence, among other things.
 .Pp
-The profile, the filename, and, by extension, the application name must conform to the following pattern:
+The filename, and, by extension, the application name must conform to the following pattern:
 .Qo Sy "^[a-zA-Z0-9][a-zA-Z0-9_-]*$" Qc Ns "."
+The profile name is similar, but it does not include the
+.Qo Sy _ Qc No character.
 .Pp
 The jail name is constructed by concatenating the prefix
 .Sy x11appjail- Ns ,

@@ -654,8 +654,9 @@ IMPLEMENTATION NOTES
      other strings, such as the name of the jail where the application will
      run and the data directory used for data persistence, among other things.
 
-     The profile, the filename, and, by extension, the application name must
-     conform to the following pattern: "^[a-zA-Z0-9][a-zA-Z0-9_-]*$".
+     The filename, and, by extension, the application name must conform to the
+     following pattern: "^[a-zA-Z0-9][a-zA-Z0-9_-]*$". The profile name is
+     similar, but it does not include the "_" character.
 
      The jail name is constructed by concatenating the prefix x11appjail-, the
      application name, the UID of the calling process, and the suffix _

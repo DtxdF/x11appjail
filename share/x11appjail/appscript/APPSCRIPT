@@ -94,7 +94,7 @@ main()
 
     export X11APPJAIL_PROFILE="${X11APPJAIL_PROFILE:-default}"
 
-    if ! check_humanname "${X11APPJAIL_PROFILE}"; then
+    if ! check_profilename "${X11APPJAIL_PROFILE}"; then
         err "Invalid profile name: ${X11APPJAIL_PROFILE}"
         exit 1
     fi
@@ -822,7 +822,6 @@ EOF
 x11appjail_uninstall()
 {
     build_appname
-    build_libexec
     # See X11APPJAIL_PREFIX below.
     build_prefix
 
@@ -858,19 +857,28 @@ x11appjail_uninstall()
 
 x11appjail_destroy_jail()
 {
-    local jail
+    build_libexec
 
+    local jail
     for jail in `"${APPJAIL}" jail list -H name`; do
         case "${jail}" in
             x11appjail-${APPNAME}-*_${X11APPJAIL_PROFILE}) ;;
             *) continue ;;
         esac
 
-        if "${APPJAIL}" status -q -- "${jail}" > /dev/null 2>&1; then
-            "${APPJAIL}" stop -- "${jail}"
+        if ! check_jailname "${jail}"; then
+            continue
         fi
 
-        "${APPJAIL}" jail destroy -Rf -- "${jail}" > /dev/null 2>&1
+        local uid
+        uid=`jail2uid "${jail}"`
+
+        if [ -z "${uid}" ] || ! check_number "${uid}"; then
+            continue
+        fi
+
+        DOAS_USER="${uid}" \
+            "${LIBEXEC}/map-exec" "destroy-jail" "${APPNAME}:${X11APPJAIL_PROFILE}"
     done
 }
 

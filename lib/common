@@ -186,9 +186,29 @@ build_etcdir()
     ETCDIR="${_s}"
 }
 
+jail2uid()
+{
+    printf "%s" "$1" | sed -nE 's/^x11appjail-(.+)-([0-9]+)_([^_]+)$/\2/p'
+}
+
+check_number()
+{
+    printf "%s" "$1" | grep -qEe '^[0-9]+$'
+}
+
+check_jailname()
+{
+    printf "%s" "$1" | grep -qEe '^x11appjail-[a-zA-Z0-9][a-zA-Z0-9_-]*-[0-9]+_[a-zA-Z0-9][a-zA-Z0-9-]*$'
+}
+
 check_humanname()
 {
     printf "%s" "$1" | grep -qEe '^[a-zA-Z0-9][a-zA-Z0-9_-]*$'
+}
+
+check_profilename()
+{
+    printf "%s" "$1" | grep -qEe '^[a-zA-Z0-9][a-zA-Z0-9-]*$'
 }
 
 check_attr()
@@ -256,7 +276,7 @@ build_appspec()
     PROFILE=`printf "%s" "${appspec}" | cut -s -d: -f2-` || exit 1
     PROFILE="${PROFILE:-default}"
 
-    if ! check_humanname "${PROFILE}"; then
+    if ! check_profilename "${PROFILE}"; then
         err "Invalid profile name: ${PROFILE}"
         exit 1
     fi

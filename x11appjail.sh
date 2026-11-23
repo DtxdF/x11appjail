@@ -84,7 +84,7 @@ list-instances()
     uid=`id -u` || exit ${EX_SOFTWARE}
 
     local regex
-    regex="^x11appjail-([a-zA-Z0-9][a-zA-Z0-9_-]*)-${uid}_([a-zA-Z0-9][a-zA-Z0-9_-]*)$"
+    regex="^x11appjail-([a-zA-Z0-9][a-zA-Z0-9_-]*)-${uid}_([a-zA-Z0-9][a-zA-Z0-9_]*)$"
 
     jls name | while IFS= read -r jail; do
         case "${jail}" in
