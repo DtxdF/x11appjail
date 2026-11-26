@@ -2,9 +2,11 @@ NAME
      x11appjail - FreeBSD application sandboxing and distribution framework
 
 SYNOPSIS
-     x11appjail attr check attr
      x11appjail attr cat attr
+     x11appjail attr check attr
+     x11appjail attr cp src dst
      x11appjail attr ls
+     x11appjail attr mv src dst
      x11appjail attr put attr [value]
      x11appjail attr rm attr
      x11appjail build [-LOS] [-A algo] [-a arch] [-C directory] [-c algo]
@@ -28,9 +30,11 @@ SYNOPSIS
      x11appjail transfer [-m mode] source [target]
      x11appjail trust vendorid public_key
      x11appjail trusted
-     x11appjail sys-attr check attr [uid]
      x11appjail sys-attr cat attr [uid]
+     x11appjail sys-attr check attr [uid]
+     x11appjail sys-attr cp src dst [uid]
      x11appjail sys-attr ls [uid]
+     x11appjail sys-attr mv src dst [uid]
      x11appjail sys-attr put attr value [uid]
      x11appjail sys-attr rm attr [uid]
      x11appjail untrust vendorid
@@ -60,13 +64,20 @@ DESCRIPTION
 
 	  The options are as follows:
 
-	   check attr
-	       Check if a user attribute exists.
-
 	   cat attr
 	       Display the content of a user attribute.
 
+	   check attr
+	       Check if a user attribute exists.
+
+	   cp src dst
+	       Copy the value of the src attribute to dst.
+
 	   ls  List all user attributes.
+
+	   mv src dst
+	       Copy the value of the src attribute to dst, and then remove
+	       src.
 
 	   put attr [value]
 	       Create or update a user attribute.
@@ -347,14 +358,21 @@ DESCRIPTION
 
 	  The options are as follows:
 
-	   check attr
-	       Check if a system attribute exists.
-
 	   cat attr [uid]
 	       Display the content of a system attribute.
 
+	   check attr
+	       Check if a system attribute exists.
+
+	   cp src dst [uid]
+	       Copy the value of the src attribute to dst.
+
 	   ls [uid]
 	       List all system attributes.
+
+	   mv src dst [uid]
+	       Copy the value of the src attribute to dst, and then remove
+	       src.
 
 	   put attr [value] [uid]
 	       Create or update a system attribute.

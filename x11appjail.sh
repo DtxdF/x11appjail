@@ -107,13 +107,42 @@ attr()
     local operation="$1"
 
     case "${operation}" in
-        put|rm|cat|ls|check) ;;
+        put|rm|cat|ls|check|cp|mv) ;;
         *) usage; exit ${EX_USAGE} ;;
     esac
 
     shift
 
     attr_${operation} "$@"
+}
+
+attr_cp()
+{
+    local attr_src="$1"  attr_dst="$2"
+
+    if [ -z "${attr_src}" -o -z "${attr_dst}" ]; then
+        usage
+        exit ${EX_USAGE}
+    fi
+
+    build_libexec
+
+    local value
+    value=`doas "${LIBEXEC}/map-exec" "attr" "cat" "${attr_src}"` || exit ${EX_SOFTWARE}
+
+    exec doas "${LIBEXEC}/map-exec" "attr" "put" "${attr_dst}" "${value}"
+}
+
+attr_mv()
+{
+    if [ "$1" = "$2" ]; then
+        err "$1 and $2 are identical."
+        exit ${EX_DATAERR}
+    fi
+
+    (attr_cp "$1" "$2") || exit ${EX_SOFTWARE}
+
+    attr_rm "$1"
 }
 
 attr_put()
@@ -200,13 +229,39 @@ sys-attr()
     local operation="$1"
 
     case "${operation}" in
-        put|rm|cat|ls|check) ;;
+        put|rm|cat|ls|check|cp|mv) ;;
         *) usage; exit ${EX_USAGE} ;;
     esac
 
     shift
 
     sys-attr_${operation} "$@"
+}
+
+sys-attr_cp()
+{
+    local attr_src="$1"  attr_dst="$2"
+
+    if [ -z "${attr_src}" -o -z "${attr_dst}" ]; then
+        usage
+        exit ${EX_USAGE}
+    fi
+
+    build_libexec
+
+    local uid="$3"
+
+    local value
+    value=`"${LIBEXEC}/sys-attr" "cat" "${attr_src}" "${uid}"` || exit ${EX_SOFTWARE}
+
+    exec "${LIBEXEC}/sys-attr" "put" "${attr_dst}" "${value}" "${uid}"
+}
+
+sys-attr_mv()
+{
+    (sys-attr_cp "$1" "$2" "$3") || exit ${EX_SOFTWARE}
+
+    sys-attr_rm "$1" "$3"
 }
 
 sys-attr_check()
@@ -1233,9 +1288,11 @@ load_common()
 usage()
 {
     cat << EOF
-usage: x11appjail attr check <attr>
-       x11appjail attr cat <attr>
+usage: x11appjail attr cat <attr>
+       x11appjail attr check <attr>
+       x11appjail attr cp <src> <dst>
        x11appjail attr ls
+       x11appjail attr mv <src> <dst>
        x11appjail attr put <attr> [<value>]
        x11appjail attr rm <attr>
        x11appjail build [-LOS] [-A <algo>] [-a <arch>] [-C <directory>] [-c <algo>]
@@ -1259,9 +1316,11 @@ usage: x11appjail attr check <attr>
        x11appjail transfer [-m <mode>] <source> [<target>]
        x11appjail trust <vendorid> <public_key>
        x11appjail trusted
-       x11appjail sys-attr check <attr> [<uid>]
        x11appjail sys-attr cat <attr> [<uid>]
+       x11appjail sys-attr check <attr> [<uid>]
+       x11appjail sys-attr cp <src> <dst> [<uid>]
        x11appjail sys-attr ls [<uid>]
+       x11appjail sys-attr mv <src> <dst> [<uid>]
        x11appjail sys-attr put <attr> <value> [<uid>]
        x11appjail sys-attr rm <attr> [<uid>]
        x11appjail untrust <vendorid>
