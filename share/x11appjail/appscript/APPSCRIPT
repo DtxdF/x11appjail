@@ -657,6 +657,10 @@ x11appjail_run()
                         xauth add localhost:${x11_display} MIT-MAGIC-COOKIE-1 "${cookie}" || exit 1
                 fi
 
+		if [ -x "${RUNDIR_CLEAN}/${X11APPJAIL_JAIL}" ]; then
+			"${APPJAIL}" label add "${X11APPJAIL_JAIL}" "appjail.exec.clean" "${RUNDIR_CLEAN}/${X11APPJAIL_JAIL}" || exit 1
+		fi
+
                 "${APPJAIL}" label add "${X11APPJAIL_JAIL}" "x11appjail.checksum" "${checksum}" || exit 1
 
                 break
