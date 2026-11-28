@@ -18,6 +18,7 @@ options:
   - priority: '5'
   - label: 'security-group:1'
   - label: 'security-group.tables.allow-dns:allow-dns'
+  - label: !ENV 'security-group.rules.allow-ssh:pass out on appjail_bridge proto tcp to %i port 22 user "${USER}"'
   - ephemeral:
 template:
   loader: 'bhyveload'

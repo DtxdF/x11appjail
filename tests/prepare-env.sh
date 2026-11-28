@@ -42,6 +42,8 @@ fi
 
 if ! check_step doas; then
     run_ssh set -xe -o pipefail\; \
+        echo permit nopass root cmd /usr/local/libexec/x11appjail/map-exec \| tee -a /usr/local/etc/doas.conf
+    run_ssh set -xe -o pipefail\; \
         echo permit nopass noroot cmd /usr/local/libexec/x11appjail/map-exec \| tee -a /usr/local/etc/doas.conf
     mark_step doas
 fi

@@ -6,6 +6,7 @@ set -e -o pipefail
 APPJAIL_FILENAME="atf-test.AppJail"
 APPJAIL_VENDORID="tests@example.org"
 APPJAIL_APPNAME="atf-test"
+APPJAIL_CLEAN_FILE="/tmp/.x11appjail-clean-hook"
 
 atf_test_case "run" "cleanup"
 run_head()
@@ -50,6 +51,8 @@ run_body()
         grep -Ee "^${APPJAIL_APPNAME}:default$" list-instances.out
     atf_check -s exit:0 -o ignore -e ignore \
         mdo -u "${user}" x11appjail destroy-jail "${APPJAIL_APPNAME}"
+    atf_check -s exit:0 -o "inline:clean hook is working\n" \
+        cat "${APPJAIL_CLEAN_FILE}"
     atf_check -s exit:0 -o save:list-instances.out \
         mdo -u "${user}" x11appjail list-instances
     atf_check -s not-exit:0 -o empty \
@@ -62,6 +65,7 @@ run_cleanup()
 
     mdo -u "${user}" \
         x11appjail destroy-jail "${APPJAIL_APPNAME}" > /dev/null 2>&1 || :
+    rm -f "${APPJAIL_CLEAN_FILE}"
     end_common
 }
 
@@ -399,6 +403,7 @@ service_cleanup()
     mdo -u "${user}" \
         x11appjail destroy-jail "${APPJAIL_APPNAME}" > /dev/null 2>&1 || :
 
+    rm -f "${APPJAIL_CLEAN_FILE}"
     rm -rf -- "/var/x11appjail/users/${uid}/${APPJAIL_APPNAME}.default/.x11appjail-services/test-service"
     rm -rf -- "${prefix}/etc/x11appjail/service.d/test-service"
 

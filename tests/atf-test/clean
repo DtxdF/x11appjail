@@ -1,0 +1,6 @@
+#!/bin/sh
+
+FILENAME="/tmp/.x11appjail-clean-hook"
+VALUE="clean hook is working"
+
+echo "${VALUE}" > "${FILENAME}"

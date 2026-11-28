@@ -25,14 +25,20 @@ attributes_body()
     fi
 
     atf_check -s exit:0 x11appjail attr put "${attr}" "${val}"
+    atf_check -s exit:0 x11appjail attr mv "${attr}" "${attr}-cp"
+    atf_check -s exit:0 x11appjail attr cp "${attr}-cp" "${attr}"
     atf_check -s exit:0 -o "inline:${val}\n" x11appjail attr cat "${attr}"
+    atf_check -s exit:0 -o "inline:${val}\n" x11appjail attr cat "${attr}-cp"
     atf_check -s exit:0 -o save:list.out x11appjail attr ls
-    atf_check -s exit:0 -o "inline:${attr}\n" grep -Ee "^${attr_regex}$" list.out
+    atf_check -s exit:0 -o "inline:${attr}\n${attr}-cp\n" grep -Ee "^${attr_regex}" list.out
     atf_check -s exit:0 x11appjail attr check "${attr}"
+    atf_check -s exit:0 x11appjail attr check "${attr}-cp"
     atf_check -s exit:0 x11appjail attr rm "${attr}"
+    atf_check -s exit:0 x11appjail attr rm "${attr}-cp"
     atf_check -s not-exit:0 x11appjail attr check "${attr}"
+    atf_check -s not-exit:0 x11appjail attr check "${attr}-cp"
     atf_check -s exit:0 -o save:list.out x11appjail attr ls
-    atf_check -s not-exit:0 -o empty grep -Ee "^${attr_regex}$" list.out
+    atf_check -s not-exit:0 -o empty grep -Ee "^${attr_regex}" list.out
 }
 
 attributes_cleanup()
@@ -61,14 +67,20 @@ system_attributes_body()
     fi
 
     atf_check -s exit:0 x11appjail sys-attr put "${attr}" "${val}"
+    atf_check -s exit:0 x11appjail sys-attr mv "${attr}" "${attr}-cp"
+    atf_check -s exit:0 x11appjail sys-attr cp "${attr}-cp" "${attr}"
     atf_check -s exit:0 -o "inline:${val}\n" x11appjail sys-attr cat "${attr}"
+    atf_check -s exit:0 -o "inline:${val}\n" x11appjail sys-attr cat "${attr}-cp"
     atf_check -s exit:0 -o save:list.out x11appjail sys-attr ls
-    atf_check -s exit:0 -o "inline:${attr}\n" grep -Ee "^${attr_regex}$" list.out
+    atf_check -s exit:0 -o "inline:${attr}\n${attr}-cp\n" grep -Ee "^${attr_regex}" list.out
     atf_check -s exit:0 x11appjail sys-attr check "${attr}"
+    atf_check -s exit:0 x11appjail sys-attr check "${attr}-cp"
     atf_check -s exit:0 x11appjail sys-attr rm "${attr}"
+    atf_check -s exit:0 x11appjail sys-attr rm "${attr}-cp"
     atf_check -s not-exit:0 x11appjail sys-attr check "${attr}"
+    atf_check -s not-exit:0 x11appjail sys-attr check "${attr}-cp"
     atf_check -s exit:0 -o save:list.out x11appjail attr ls
-    atf_check -s not-exit:0 -o empty grep -Ee "^${attr_regex}$" list.out
+    atf_check -s not-exit:0 -o empty grep -Ee "^${attr_regex}" list.out
 }
 
 system_attributes_cleanup()
